@@ -280,12 +280,35 @@ status_server() {
       echo "PID file present but process not running."
     fi
   fi
-  if [ -f docker-compose.yml ]; then
-    echo "Docker compose status:"
-    docker-compose ps || true
-  else
-    echo "No running server detected."
+
+  # Check for a docker container named crta-server
+  if command -v docker >/dev/null 2>&1; then
+    if docker ps --format '{{.Names}}' | grep -q '^crta-server$'; then
+      echo "Docker container 'crta-server' is running:"
+      docker ps --filter "name=crta-server"
+      return
+    fi
   fi
+
+  # Check docker-compose / docker compose status if compose file exists
+  DC=""
+  if command -v docker-compose >/dev/null 2>&1; then
+    DC="docker-compose"
+  elif command -v docker >/dev/null 2>&1 && docker --help 2>/dev/null | grep -q "compose"; then
+    DC="docker compose"
+  fi
+
+  if [ -n "$DC" ] && [ -f docker-compose.yml ]; then
+    echo "Docker compose status:"
+    if [[ "$DC" == *" "* ]]; then
+      eval "$DC ps" || true
+    else
+      $DC ps || true
+    fi
+    return
+  fi
+
+  echo "No running server detected."
 }
 
 pull_latest() {
@@ -367,7 +390,10 @@ redeploy_compose() {
 }
 
 run_tests() {
-  if [ -f package.json ] && grep -q "\"test\"" package.json; then
+  # Prefer server/package.json if present
+  if [ -f server/package.json ] && grep -q "\"test\"" server/package.json; then
+    (cd server && npm test)
+  elif [ -f package.json ] && grep -q "\"test\"" package.json; then
     npm test
   elif command -v pytest >/dev/null 2>&1; then
     pytest
