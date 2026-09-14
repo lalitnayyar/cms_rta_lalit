@@ -42,6 +42,7 @@ async function init(){
   const l_enabled = await $('l_enabled');
   const l_theme = await $('l_theme');
   const linksOut = await $('linksOut');
+  const searchLinks = await $('searchLinks');
 
   let currentLinkId = null;
 
@@ -51,10 +52,15 @@ async function init(){
   const btnCreateUser = await $('btnCreateUser');
   const btnFetchUsers = await $('btnFetchUsers');
   const usersOut = await $('usersOut');
+  const searchUsers = await $('searchUsers');
 
 
   let currentEditId = null;
 
+  // cached lists for client-side search
+  let lastLinks = [];
+  let lastNotices = [];
+  let lastUsers = [];
   function setLogged(uid){
     if(uid){
       localStorage.setItem('crta_admin_uid', uid);
@@ -105,11 +111,17 @@ async function init(){
     try{
       const r = await fetch('/admin/notices',{headers:{'x-admin-uid':uid}});
       const j = await r.json();
-      renderNotices(j);
+      lastNotices = Array.isArray(j)? j : [];
+      renderNotices(lastNotices);
     }catch(e){ out.textContent = 'Error: '+e.message }
   }
 
   btnNotices.addEventListener('click', fetchNotices);
+  // search handlers
+  if(searchLinks){ searchLinks.addEventListener('input', (e)=>{ const q=String(e.target.value||'').trim().toLowerCase(); renderLinks(q? lastLinks.filter(l=> (l.heading||'').toLowerCase().includes(q) || (l.url||'').toLowerCase().includes(q) || (l.description||'').toLowerCase().includes(q) ) : lastLinks); }); }
+  if(searchUsers){ searchUsers.addEventListener('input', (e)=>{ const q=String(e.target.value||'').trim().toLowerCase(); renderUsers(q? lastUsers.filter(u=> (u.uid||'').toLowerCase().includes(q) ) : lastUsers); }); }
+  const searchNoticesEl = await $('searchNotices');
+  if(searchNoticesEl){ searchNoticesEl.addEventListener('input', (e)=>{ const q=String(e.target.value||'').trim().toLowerCase(); renderNotices(q? lastNotices.filter(n=> (n.heading||'').toLowerCase().includes(q) || (n.description||'').toLowerCase().includes(q) || (n.priority||'').toLowerCase().includes(q) ) : lastNotices); }); }
 
   btnDbStatus.addEventListener('click', async ()=>{
     const uid = localStorage.getItem('crta_admin_uid');
@@ -345,7 +357,8 @@ async function init(){
     try{
       const r = await fetch('/admin/links',{headers:{'x-admin-uid':uid}});
       const j = await r.json();
-      renderLinks(j);
+      lastLinks = Array.isArray(j)? j : [];
+      renderLinks(lastLinks);
     }catch(e){ out.textContent='Error: '+e.message }
   }
 
@@ -419,7 +432,8 @@ async function init(){
     try{
       const r = await fetch('/admin/users',{headers:{'x-admin-uid':uid}});
       const j = await r.json();
-      renderUsers(j);
+      lastUsers = Array.isArray(j)? j : [];
+      renderUsers(lastUsers);
     }catch(e){ out.textContent='Error: '+e.message }
   }
 
