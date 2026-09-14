@@ -189,18 +189,33 @@ record_visit_cli() {
 }
 
 start_server() {
+  read -r -p "Host [0.0.0.0]: " host
+  host="${host:-0.0.0.0}"
+  read -r -p "Port [8000]: " port
+  port="${port:-8000}"
+
   if [ -f manage.py ]; then
-    echo "Detected Django. Running: python3 manage.py runserver"
-    python3 manage.py runserver
+    cmd="python3 manage.py runserver ${host}:${port}"
   elif [ -f package.json ]; then
-    echo "Detected Node project. Running: npm run start"
-    npm run start
+    # Many Node apps respect PORT env var; pass HOST too in case used by app
+    cmd="PORT=${port} HOST=${host} npm run start"
   elif [ -f app.py ] || [ -f run.py ]; then
-    echo "Detected flask-like app. Starting python entrypoint"
-    python3 app.py || python3 run.py
+    if command -v flask >/dev/null 2>&1; then
+      # Prefer flask CLI if available
+      cmd="FLASK_APP=app.py FLASK_RUN_HOST=${host} FLASK_RUN_PORT=${port} flask run"
+    else
+      # Best-effort: user entrypoint may read PORT env var, otherwise fallback
+      cmd="PORT=${port} HOST=${host} python3 app.py || PORT=${port} HOST=${host} python3 run.py"
+    fi
   else
-    echo "No framework detected; starting simple HTTP server on 8000"
-    python3 -m http.server 8000
+    cmd="python3 -m http.server ${port} --bind ${host}"
+  fi
+
+  echo "About to run: $cmd"
+  if confirm "Start server on ${host}:${port}?"; then
+    eval "$cmd"
+  else
+    echo "Start cancelled."
   fi
 }
 

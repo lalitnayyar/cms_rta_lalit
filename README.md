@@ -46,8 +46,28 @@ Deployment notes
   - Ensure WRITE access for server/data.db or configure a remote DB
   - Replace demo auth with secure sessions and HTTPS
 
+manage.sh (project manager)
+- An interactive manage script at the repo root (manage.sh) provides common project tasks:
+  - init-db: creates data/site.db with tables: admins, links, visits, notices, notices_history
+  - create-admin: add an admin user (username + password)
+  - add-link / list-links / toggle-link: manage link entries
+  - add-notice / list-notices / expire-notices: manage notices and archive expired items
+  - show-audit / record-visit: audit log utilities
+  - start: start the app and select host and port (prompts for host (default 0.0.0.0) and port (default 8000))
+
+Notes about start/port
+- When starting the app via manage.sh you will be prompted for host and port.
+- For Django the script runs: python3 manage.py runserver <host>:<port>
+- For Node apps it sets PORT and HOST env vars: PORT=<port> HOST=<host> npm run start
+- For Flask it prefers the flask CLI: FLASK_APP=app.py FLASK_RUN_HOST=<host> FLASK_RUN_PORT=<port> flask run
+- If the detected entrypoint doesn't support host/port, the script falls back to python -m http.server
+
+Notes
+- Password hashing currently uses SHA-256(username:password) for simplicity; migrate to bcrypt for production.
+- Use the expire-notices command or schedule a cron job to archive expired notices automatically.
+
 Contributing
-- Open issues or PRs with feature requests. Suggested next work: add React frontend, implement secure auth (JWT/sessions), and add migrations/tests.
+- Open issues or PRs with feature requests. Suggested next work: add React frontend, implement secure auth (bcrypt/sessions), and add migrations/tests.
 
 License
 - Add a LICENSE file if desired.
