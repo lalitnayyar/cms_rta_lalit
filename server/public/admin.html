@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>CRTA Admin</title></head>
+  <body>
+    <h1>Admin UI (placeholder)</h1>
+    <p>This is a minimal admin UI placeholder. Use the /admin API with header 'x-admin-uid: admin' for demo auth.</p>
+    <form id="create">
+      <input name="url" placeholder="URL" required />
+      <input name="heading" placeholder="Heading" />
+      <button type="submit">Create</button>
+    </form>
+    <script>
+      document.getElementById('create').addEventListener('submit', async e=>{
+        e.preventDefault();
+        const form = e.target;
+        const body = { url: form.url.value, heading: form.heading.value };
+        const res = await fetch('/admin/links', {method:'POST', headers:{'Content-Type':'application/json','x-admin-uid':'admin'}, body: JSON.stringify(body)});
+        if (res.ok) alert('Created'); else alert('Error');
+      });
+    </script>
+  </body>
+</html>

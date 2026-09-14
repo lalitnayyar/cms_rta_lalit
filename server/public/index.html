@@ -1,0 +1,14 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>CRTA - Links</title></head>
+  <body>
+    <h1>CRTA - Public Front Page</h1>
+    <div id="links">Loading links...</div>
+    <script>
+      fetch('/api/links').then(r=>r.json()).then(data=>{
+        const c = document.getElementById('links');
+        c.innerHTML = data.map(l=>`<div><h3>${l.heading||''}</h3><a href="${l.url}">${l.url}</a><p>${l.description||''}</p></div>`).join('\n');
+      }).catch(e=>{document.getElementById('links').innerText='Failed to load links'});
+    </script>
+  </body>
+</html>
