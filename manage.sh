@@ -295,11 +295,11 @@ pull_latest() {
 }
 
 deploy_compose() {
-  # detect compose command (docker-compose or docker compose)
+  # detect compose command (docker-compose or docker compose plugin) without invoking 'docker compose'
   DC=""
   if command -v docker-compose >/dev/null 2>&1; then
     DC="docker-compose"
-  elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+  elif command -v docker >/dev/null 2>&1 && docker --help 2>/dev/null | grep -q "compose"; then
     DC="docker compose"
   fi
 
@@ -314,7 +314,7 @@ deploy_compose() {
   if [ -f server/Dockerfile ]; then
     if confirm "Docker Compose unavailable or not desired. Build server image and run container (exposes PORT 4000)?"; then
       # stop existing container if present
-      if docker ps -a --format '{{.Names}}' | grep -q '^crta-server$'; then
+      if command -v docker >/dev/null 2>&1 && docker ps -a --format '{{.Names}}' | grep -q '^crta-server$'; then
         echo "Stopping existing crta-server container..."
         docker rm -f crta-server || true
       fi
@@ -330,7 +330,7 @@ redeploy_compose() {
   DC=""
   if command -v docker-compose >/dev/null 2>&1; then
     DC="docker-compose"
-  elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+  elif command -v docker >/dev/null 2>&1 && docker --help 2>/dev/null | grep -q "compose"; then
     DC="docker compose"
   fi
 
@@ -345,7 +345,7 @@ redeploy_compose() {
   # Fallback to Dockerfile build/run deployment if compose not available
   if [ -f server/Dockerfile ]; then
     if confirm "Compose unavailable. Rebuild image and restart container?"; then
-      if docker ps -a --format '{{.Names}}' | grep -q '^crta-server$'; then
+      if command -v docker >/dev/null 2>&1 && docker ps -a --format '{{.Names}}' | grep -q '^crta-server$'; then
         echo "Stopping existing crta-server container..."
         docker rm -f crta-server || true
       fi
