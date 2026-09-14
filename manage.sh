@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Complete interactive manage script tailored to the project's requirements
 # Provides DB init/migrations (SQLite), admin creation, link & notice CRUD, expiry job,
-# audit log viewing, and framework-aware start/test/build commands.
+# audit log viewing, and framework-aware start/test/build commands, plus deployment helpers.
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -10,10 +10,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_DIR="$ROOT_DIR/data"
 DB_FILE="$DB_DIR/site.db"
 SQLITE_BIN="$(command -v sqlite3 || true)"
+PID_FILE="$DB_DIR/manage.pid"
+LOG_FILE="$DB_DIR/manage.log"
 
 if [ -z "$SQLITE_BIN" ]; then
-  echo "sqlite3 is required but not found. Please install sqlite3." >&2
-  exit 1
+  echo "Warning: sqlite3 not found. DB-related commands will fail until sqlite3 is installed."
 fi
 
 confirm() {
@@ -25,6 +26,10 @@ confirm() {
 }
 
 ensure_db() {
+  if [ -z "$SQLITE_BIN" ]; then
+    echo "sqlite3 CLI is required for DB operations. Install sqlite3 and retry." >&2
+    return 1
+  fi
   mkdir -p "$DB_DIR"
   if [ ! -f "$DB_FILE" ]; then
     echo "Initializing SQLite DB at $DB_FILE"
@@ -70,16 +75,16 @@ SQL
 hash_password() {
   # SHA-256 with username salt for minimal safety (no deps)
   username="$1"; password="$2"
-  python3 - <<PY
+  python3 - "$username" "$password" <<'PY'
 import hashlib,sys
 u=sys.argv[1].encode()
 p=sys.argv[2].encode()
-print(hashlib.sha256(u+ b':' + p).hexdigest())
+print(hashlib.sha256(u + b':' + p).hexdigest())
 PY
 }
 
 create_admin_cli() {
-  ensure_db
+  ensure_db || return 1
   read -r -p "Admin username: " username
   while true; do
     read -s -r -p "Password: " pw1; echo
@@ -95,7 +100,7 @@ SQL
 }
 
 add_link_cli() {
-  ensure_db
+  ensure_db || return 1
   read -r -p "URL: " url
   read -r -p "Image path or URL (optional): " image
   read -r -p "Heading (optional): " heading
@@ -112,12 +117,12 @@ SQL
 }
 
 list_links_cli() {
-  ensure_db
+  ensure_db || return 1
   $SQLITE_BIN -column -header "$DB_FILE" "SELECT id,url,heading,enabled,theme_tag,created_at FROM links ORDER BY created_at DESC;"
 }
 
 toggle_link_cli() {
-  ensure_db
+  ensure_db || return 1
   read -r -p "Link id to toggle: " id
   current=$($SQLITE_BIN "$DB_FILE" "SELECT enabled FROM links WHERE id=$id;" | tr -d '\n')
   if [ -z "$current" ]; then echo "No link with id=$id"; return; fi
@@ -127,7 +132,7 @@ toggle_link_cli() {
 }
 
 add_notice_cli() {
-  ensure_db
+  ensure_db || return 1
   read -r -p "Image path or URL (optional): " image
   read -r -p "Heading: " heading
   read -r -p "Description: " desc
@@ -147,7 +152,7 @@ SQL
 }
 
 list_notices_cli() {
-  ensure_db
+  ensure_db || return 1
   echo "Active notices:";
   $SQLITE_BIN -column -header "$DB_FILE" "SELECT id,heading,publish_at,expires_at,created_at FROM notices ORDER BY created_at DESC;"
   echo
@@ -156,7 +161,7 @@ list_notices_cli() {
 }
 
 expire_notices_job() {
-  ensure_db
+  ensure_db || return 1
   now="$(date '+%Y-%m-%d %H:%M:%S')"
   expired=$($SQLITE_BIN "$DB_FILE" "SELECT id FROM notices WHERE expires_at IS NOT NULL AND expires_at <= '$now';")
   if [ -z "$expired" ]; then
@@ -174,12 +179,12 @@ SQL
 }
 
 show_audit_cli() {
-  ensure_db
+  ensure_db || return 1
   $SQLITE_BIN -column -header "$DB_FILE" "SELECT v.id,v.link_id,l.url,v.ip,v.visited_at FROM visits v LEFT JOIN links l ON v.link_id=l.id ORDER BY v.visited_at DESC LIMIT 200;"
 }
 
 record_visit_cli() {
-  ensure_db
+  ensure_db || return 1
   read -r -p "Link id (or leave blank): " lid
   read -r -p "Visitor IP (optional, will try to detect): " ip
   if [ -z "$ip" ]; then ip="unknown"; fi
@@ -188,6 +193,7 @@ record_visit_cli() {
   echo "Visit recorded."
 }
 
+# Start server foreground (interactive)
 start_server() {
   read -r -p "Host [0.0.0.0]: " host
   host="${host:-0.0.0.0}"
@@ -219,6 +225,101 @@ start_server() {
   fi
 }
 
+# Start server in background and record PID
+start_server_bg() {
+  read -r -p "Host [0.0.0.0]: " host
+  host="${host:-0.0.0.0}"
+  read -r -p "Port [8000]: " port
+  port="${port:-8000}"
+
+  if [ -f manage.py ]; then
+    cmd="python3 manage.py runserver ${host}:${port}"
+  elif [ -f package.json ]; then
+    cmd="PORT=${port} HOST=${host} npm run start"
+  elif [ -f app.py ] || [ -f run.py ]; then
+    cmd="PORT=${port} HOST=${host} python3 app.py || PORT=${port} HOST=${host} python3 run.py"
+  else
+    cmd="python3 -m http.server ${port} --bind ${host}"
+  fi
+
+  mkdir -p "$DB_DIR"
+  echo "Starting in background. Logs: $LOG_FILE"
+  nohup bash -c "$cmd" >"$LOG_FILE" 2>&1 &
+  pid=$!
+  echo "$pid" > "$PID_FILE"
+  echo "Background server started with PID $pid"
+}
+
+stop_server() {
+  if [ -f "$PID_FILE" ]; then
+    pid=$(cat "$PID_FILE" 2>/dev/null || true)
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+      if confirm "Kill process $pid?"; then
+        kill "$pid" && rm -f "$PID_FILE"
+        echo "Process $pid stopped."
+      else
+        echo "Abort stop."
+      fi
+    else
+      echo "No running process found for PID $pid. Removing stale PID file."; rm -f "$PID_FILE"
+    fi
+  else
+    echo "No PID file found; server may not be running."
+  fi
+}
+
+status_server() {
+  if [ -f "$PID_FILE" ]; then
+    pid=$(cat "$PID_FILE" 2>/dev/null || true)
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+      echo "Server running with PID $pid"
+      echo "Last 40 lines of log ($LOG_FILE):"
+      tail -n 40 "$LOG_FILE" || true
+      return
+    else
+      echo "PID file present but process not running."
+    fi
+  fi
+  if [ -f docker-compose.yml ]; then
+    echo "Docker compose status:"
+    docker-compose ps || true
+  else
+    echo "No running server detected."
+  fi
+}
+
+pull_latest() {
+  if confirm "Pull latest from origin/main?"; then
+    git pull origin main
+  fi
+}
+
+deploy_compose() {
+  if [ -f docker-compose.yml ]; then
+    if confirm "Run docker-compose up -d --build?"; then
+      docker-compose up -d --build
+    fi
+  elif [ -f server/Dockerfile ]; then
+    if confirm "Build server image and run container (exposes PORT 4000)?"; then
+      docker build -f server/Dockerfile -t crta-server:latest .
+      docker run -d -p 4000:4000 -v "$(pwd)/data:/app/data" --name crta-server crta-server:latest
+    fi
+  else
+    echo "No docker-compose.yml or server/Dockerfile found."
+  fi
+}
+
+redeploy_compose() {
+  if [ -f docker-compose.yml ]; then
+    if confirm "Pull images and redeploy (docker-compose pull && up -d --build)?"; then
+      docker-compose pull || true
+      docker-compose up -d --build
+    fi
+  else
+    echo "No docker-compose.yml found."
+  fi
+}
+
 run_tests() {
   if [ -f package.json ] && grep -q "\"test\"" package.json; then
     npm test
@@ -233,21 +334,27 @@ show_help() {
   cat <<EOF
 manage.sh - interactive management for this project
 Commands:
-  1) start            - Start development server (framework-aware)
-  2) init-db          - Initialize SQLite DB and tables
-  3) create-admin     - Create admin user (username + password)
-  4) add-link         - Add a link (url,image,heading,description,theme)
-  5) list-links       - List links
-  6) toggle-link      - Enable/disable a link by id
-  7) add-notice       - Add a notice with publish/expiry dates
-  8) list-notices     - Show active and archived notices
-  9) expire-notices   - Move expired notices to history
- 10) record-visit     - Manually record a visit (for testing)
- 11) show-audit       - Show recent visit audit logs
- 12) test             - Run tests (npm test / pytest)
- 13) shell            - Drop to bash shell
- 14) help             - Show this help
- 15) exit             - Exit
+  1) start        - Start development server (foreground)
+  2) start-bg     - Start server in background (records PID)
+  3) stop         - Stop background server (uses PID file)
+  4) status       - Status and logs for background server or docker-compose
+  5) init-db      - Initialize SQLite DB and tables
+  6) pull         - git pull origin main
+  7) deploy       - docker-compose up -d --build or build/run Dockerfile
+  8) redeploy     - docker-compose pull && up -d --build
+  9) create-admin - Create admin user (username + password)
+ 10) add-link     - Add a link (url,image,heading,description,theme)
+ 11) list-links   - List links
+ 12) toggle-link  - Enable/disable a link by id
+ 13) add-notice   - Add a notice with publish/expiry dates
+ 14) list-notices - Show active and archived notices
+ 15) expire-notices - Move expired notices to history
+ 16) record-visit - Manually record a visit (for testing)
+ 17) show-audit   - Show recent visit audit logs
+ 18) test         - Run tests (npm test / pytest)
+ 19) shell        - Drop to bash shell
+ 20) help         - Show this help
+ 21) exit         - Exit
 EOF
 }
 
@@ -255,28 +362,33 @@ main_menu() {
   while true; do
     echo
     echo "====== manage.sh - project manager ======"
-    echo "1) start         2) init-db      3) create-admin"
-    echo "4) add-link      5) list-links  6) toggle-link"
-    echo "7) add-notice    8) list-notices 9) expire-notices"
-    echo "10) record-visit 11) show-audit 12) test"
-    echo "13) shell        14) help       15) exit"
-    read -r -p "Choose an option [1-15]: " choice
+    echo "1) start   2) start-bg 3) stop    4) status 5) init-db 6) pull"
+    echo "7) deploy  8) redeploy  9) create-admin 10) add-link 11) list-links"
+    echo "12) toggle-link 13) add-notice 14) list-notices 15) expire-notices"
+    echo "16) record-visit 17) show-audit 18) test 19) shell 20) help 21) exit"
+    read -r -p "Choose an option [1-21]: " choice
     case "$choice" in
       1) start_server ;; 
-      2) ensure_db ;; 
-      3) create_admin_cli ;; 
-      4) add_link_cli ;; 
-      5) list_links_cli ;; 
-      6) toggle_link_cli ;; 
-      7) add_notice_cli ;; 
-      8) list_notices_cli ;; 
-      9) expire_notices_job ;; 
-      10) record_visit_cli ;; 
-      11) show_audit_cli ;; 
-      12) run_tests ;; 
-      13) bash ;; 
-      14) show_help ;; 
-      15) echo "Goodbye."; exit 0 ;;
+      2) start_server_bg ;; 
+      3) stop_server ;; 
+      4) status_server ;; 
+      5) ensure_db ;; 
+      6) pull_latest ;; 
+      7) deploy_compose ;; 
+      8) redeploy_compose ;; 
+      9) create_admin_cli ;; 
+      10) add_link_cli ;; 
+      11) list_links_cli ;; 
+      12) toggle_link_cli ;; 
+      13) add_notice_cli ;; 
+      14) list_notices_cli ;; 
+      15) expire_notices_job ;; 
+      16) record_visit_cli ;; 
+      17) show_audit_cli ;; 
+      18) run_tests ;; 
+      19) bash ;; 
+      20) show_help ;; 
+      21) echo "Goodbye."; exit 0 ;;
       *) echo "Invalid choice";;
     esac
   done
