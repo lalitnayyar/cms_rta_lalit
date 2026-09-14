@@ -17,13 +17,15 @@ RUN apt-get update \
 # Copy package files and install dependencies
 COPY server/package.json server/package-lock.json* ./server/
 WORKDIR /app/server
-# Install deps (including devDependencies) to run build steps, then build assets and prune devDeps for smaller runtime image
-RUN npm ci \
-  && npm run build \
-  && npm prune --production || true
+# Install deps first to leverage Docker cache
+RUN npm ci
 
-# Copy application code (after deps to leverage caching)
+# Copy application code (includes src/styles and public)
 COPY server/ ./
+
+# Build frontend assets, then prune devDependencies for smaller runtime image
+RUN npm run build \
+  && npm prune --production || true
 
 ENV PORT=4000
 EXPOSE 4000
