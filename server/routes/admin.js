@@ -114,9 +114,16 @@ router.put('/settings', (req,res)=>{
   let remaining = keys.length;
   let hadErr = null;
   keys.forEach(k=>{
-    Setting.set(k, payload[k], (err)=>{
-      if(err) hadErr = err;
-      remaining--; if(remaining===0){ if(hadErr) return res.status(500).json({ error:'db error' }); res.json({ updated: keys.length }); }
+    Setting.set(k, payload[k], (err, changes)=>{
+      if(err){
+        hadErr = err;
+        console.error('Error saving setting', k, err && err.message);
+      }
+      remaining--;
+      if(remaining===0){
+        if(hadErr) return res.status(500).json({ error: hadErr.message || 'db error' });
+        res.json({ updated: keys.length });
+      }
     });
   });
 });
