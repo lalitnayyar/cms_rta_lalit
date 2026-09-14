@@ -89,5 +89,35 @@ Notes
 Install sqlite3 locally (Debian/Ubuntu):
    sudo apt update && sudo apt install -y sqlite3
 
+Troubleshooting
+- manage.sh exits with "sqlite3 is required" → install sqlite3 (see above) or run inside the Docker container (docker-compose up or docker run) which includes sqlite3.
+
+- "docker compose" / "docker-compose" command not found
+  * Debian/Ubuntu (recommended): install Docker Engine and compose plugin from Docker's official repo:
+      sudo apt-get remove -y docker docker-engine docker.io containerd runc containerd.io || true
+      sudo apt-get update
+      sudo apt-get install -y ca-certificates curl gnupg lsb-release
+      sudo mkdir -p /etc/apt/keyrings
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list
+      sudo apt-get update
+      sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+      sudo systemctl enable --now docker
+      # optionally add your user to docker group (log out/in): sudo usermod -aG docker $USER
+  * If apt reports containerd.io conflicts, remove older containerd/docker packages first (see commands above), then install from Docker repo.
+  * Alternatively install standalone docker-compose binary:
+      sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+      sudo chmod +x /usr/local/bin/docker-compose
+
+- Verify installation:
+   docker --version
+   docker compose version   # or: docker-compose --version
+   sqlite3 --version
+
+- Permission errors writing ./data in container: ensure directory exists and is writable, or change owner:
+   mkdir -p ./data && sudo chown $UID:$GID ./data
+
+If you want, add a note which OS you use and the README can include exact commands for that platform.
+
 - Compose mounts ./server into the container for easy development; in production remove the volume to use the image's code.
 - Ensure the ./data directory is writable by the container (the compose file mounts it to /app/data).
