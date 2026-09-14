@@ -11,9 +11,12 @@ router.use(auth.requireAuth);
 
 // LINKS
 router.get('/links', (req, res) => {
-  // return all links (admin view)
-  db.all('SELECT * FROM links ORDER BY created_at DESC', (err, rows) => {
-    if (err) return res.status(500).json({ error: 'db error' });
+  // return all links (admin view). Order by id DESC for compatibility with older DBs missing created_at
+  db.all('SELECT * FROM links ORDER BY id DESC', (err, rows) => {
+    if (err){
+      console.error('Error fetching links:', err && err.message);
+      return res.status(500).json({ error: err.message || 'db error' });
+    }
     res.json(rows);
   });
 });
@@ -134,7 +137,10 @@ router.put('/settings', (req,res)=>{
 // USERS management
 router.get('/users', (req,res)=>{
   db.all('SELECT id,uid FROM users', (err,rows)=>{
-    if(err) return res.status(500).json({ error:'db error' });
+    if(err){
+      console.error('Error fetching users:', err && err.message);
+      return res.status(500).json({ error: err.message || 'db error' });
+    }
     res.json(rows);
   });
 });
