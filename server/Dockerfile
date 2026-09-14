@@ -18,7 +18,8 @@ RUN apt-get update \
 COPY server/package.json server/package-lock.json* ./server/
 WORKDIR /app/server
 # Install deps first to leverage Docker cache
-RUN npm ci
+# Use npm ci when a lockfile is present; otherwise fall back to npm install
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # Copy application code (includes src/styles and public)
 COPY server/ ./
