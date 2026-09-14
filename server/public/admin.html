@@ -52,6 +52,21 @@
           <button id="btnUsers" class="px-3 py-1 bg-gray-100 rounded hover:shadow">Fetch users</button>
           <button id="btnDbStatus" class="px-3 py-1 bg-yellow-100 rounded hover:shadow">DB status</button>
           <button id="btnTestLive" class="px-3 py-1 bg-green-100 rounded hover:shadow">Test live</button>
+          <button id="btnSettings" class="px-3 py-1 bg-gray-100 rounded hover:shadow">Site settings</button>
+        </div>
+
+        <div id="settingsPanel" style="display:none;margin-top:12px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.04)">
+          <h4 class="font-semibold mb-2">Site settings</h4>
+          <label class="block mb-2">Heading (large)
+            <input id="s_heading1" class="mt-1 block w-full border rounded px-3 py-2" />
+          </label>
+          <label class="block mb-2">Subheading
+            <input id="s_heading2" class="mt-1 block w-full border rounded px-3 py-2" />
+          </label>
+          <div class="flex gap-2">
+            <button id="btnSaveSettings" class="bg-blue-600 text-white px-3 py-2 rounded">Save settings</button>
+            <div id="settingsOut" class="text-sm text-gray-600"></div>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">

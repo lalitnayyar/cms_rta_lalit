@@ -57,11 +57,11 @@
     <header class="hero mb-6">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
         <div>
-          <h1 style="font-size:28px;margin:0;font-weight:800">CRTA — Notices & Resources</h1>
-          <p style="margin:6px 0 0 0;opacity:.92">A clean, focused feed of important updates and quick links. High-priority items pop visually so your audience notices them first.</p>
+          <h1 id="site_h1" style="font-size:28px;margin:0;font-weight:800">CRTA — Notices & Resources</h1>
+          <p id="site_h2" style="margin:6px 0 0 0;opacity:.92">A clean, focused feed of important updates and quick links. High-priority items pop visually so your audience notices them first.</p>
         </div>
         <div>
-          <a href="/admin.html" style="background:white;color:var(--accent);padding:10px 14px;border-radius:8px;font-weight:700;text-decoration:none;box-shadow:0 8px 24px rgba(2,6,23,.08)">Admin</a>
+          <a href="/admin.html" style="background:white;color:var(--accent);padding:8px 10px;border-radius:8px;font-weight:700;text-decoration:none;box-shadow:0 8px 24px rgba(2,6,23,.08);font-size:13px">Admin</a>
         </div>
       </div>
     </header>
@@ -166,7 +166,17 @@ async function loadLinks(){
   });
 }
 
-loadNotices(); loadLinks();
+async function loadSettings(){
+  try{
+    const r = await fetch('/api/settings');
+    if(!r.ok) return;
+    const j = await r.json();
+    if(j.heading1) document.getElementById('site_h1').textContent = j.heading1;
+    if(j.heading2) document.getElementById('site_h2').textContent = j.heading2;
+  }catch(e){ /* ignore */ }
+}
+
+loadSettings(); loadNotices(); loadLinks();
 </script>
 </body>
 </html>

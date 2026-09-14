@@ -74,6 +74,7 @@ router.delete('/notices/:id', (req,res)=>{
 // ADMIN STATUS AND DB DOWNLOAD
 const path = require('path');
 const fs = require('fs');
+const Setting = require('../models/setting');
 
 router.get('/status', (req,res)=>{
   // return counts and DB info
@@ -96,6 +97,28 @@ router.get('/db', (req,res)=>{
   const dbPath = path.join(__dirname, '..', 'data.db');
   if (!fs.existsSync(dbPath)) return res.status(404).json({ error:'no db' });
   res.download(dbPath, 'data.db');
+});
+
+// SETTINGS
+router.get('/settings', (req,res)=>{
+  Setting.all((err, obj)=>{
+    if(err) return res.status(500).json({ error:'db error' });
+    res.json(obj);
+  });
+});
+
+router.put('/settings', (req,res)=>{
+  const payload = req.body || {};
+  const keys = Object.keys(payload);
+  if(keys.length===0) return res.status(400).json({ error:'no settings' });
+  let remaining = keys.length;
+  let hadErr = null;
+  keys.forEach(k=>{
+    Setting.set(k, payload[k], (err)=>{
+      if(err) hadErr = err;
+      remaining--; if(remaining===0){ if(hadErr) return res.status(500).json({ error:'db error' }); res.json({ updated: keys.length }); }
+    });
+  });
 });
 
 // USERS management

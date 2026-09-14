@@ -24,7 +24,12 @@ async function init(){
 
   const btnDbStatus = await $('btnDbStatus');
   const btnTestLive = await $('btnTestLive');
-
+  const btnSettings = await $('btnSettings');
+  const settingsPanel = await $('settingsPanel');
+  const s_heading1 = await $('s_heading1');
+  const s_heading2 = await $('s_heading2');
+  const btnSaveSettings = await $('btnSaveSettings');
+  const settingsOut = await $('settingsOut');
 
   // Links UI
   const btnCreateLinkForm = await $('btnCreateLinkForm');
@@ -121,6 +126,35 @@ async function init(){
       out.appendChild(document.createElement('br'));
       out.appendChild(a);
     }catch(e){ out.textContent='Error: '+e.message }
+  });
+
+  btnSettings.addEventListener('click', async ()=>{
+    const uid = localStorage.getItem('crta_admin_uid');
+    if(!uid){ out.textContent='Not logged in'; return; }
+    if(settingsPanel.style.display==='none'){
+      // fetch current settings
+      try{
+        const r = await fetch('/admin/settings',{headers:{'x-admin-uid':uid}});
+        const j = await r.json();
+        s_heading1.value = j.heading1 || '';
+        s_heading2.value = j.heading2 || '';
+      }catch(e){ out.textContent='Error: '+e.message }
+      settingsPanel.style.display='block';
+    } else {
+      settingsPanel.style.display='none';
+    }
+  });
+
+  btnSaveSettings.addEventListener('click', async ()=>{
+    const uid = localStorage.getItem('crta_admin_uid');
+    if(!uid){ settingsOut.textContent='Not logged in'; return; }
+    const payload = { heading1: s_heading1.value || '', heading2: s_heading2.value || '' };
+    try{
+      const r = await fetch('/admin/settings',{method:'PUT',headers:{'Content-Type':'application/json','x-admin-uid':uid},body:JSON.stringify(payload)});
+      const j = await r.json();
+      if(r.ok){ settingsOut.textContent = 'Saved'; // also update server-side cache if needed
+      } else { settingsOut.textContent = 'Save failed: '+(j.error||JSON.stringify(j)); }
+    }catch(e){ settingsOut.textContent = 'Error: '+e.message }
   });
 
   btnTestLive.addEventListener('click', async ()=>{

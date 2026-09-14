@@ -19,6 +19,15 @@ router.get('/notices', (req, res) => {
   });
 });
 
+// GET /api/settings - public settings for site
+const Setting = require('../models/setting');
+router.get('/settings', (req, res) => {
+  Setting.all((err, obj) => {
+    if (err) return res.status(500).json({ error: 'db error' });
+    res.json(obj);
+  });
+});
+
 // POST /api/links (admin-created; admin UI should call /admin)
 router.post('/links', (req, res) => {
   const payload = req.body;
