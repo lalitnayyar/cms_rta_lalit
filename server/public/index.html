@@ -6,9 +6,11 @@
   <title>CRTA — Notices & Links</title>
   <link rel="stylesheet" href="/dist/styles.css">
   <style>
-    /* Prevent horizontal overflow and make images responsive */
-    html,body{overflow-x:hidden}
+    /* Prevent horizontal overflow and ensure predictable box-sizing */
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{overflow-x:hidden;margin:0;padding:0}
     img{max-width:100%;height:auto;display:block}
+    main{max-width:1200px;margin:0 auto;padding:24px}
 
     /* Bold, attention-grabbing styles + carousel */
     :root{--accent:#0ea5a4;--muted:#64748b}
@@ -16,13 +18,13 @@
     .hero{background:linear-gradient(90deg,#0f172a,#0ea5a4);color:white;padding:36px;border-radius:12px;box-shadow:0 14px 40px rgba(2,6,23,.12)}
 
     .carousel{position:relative;overflow:hidden;border-radius:12px}
-    .carousel-track{display:flex;transition:transform .6s cubic-bezier(.2,.9,.2,1)}
+    .carousel-track{display:flex;transition:transform .6s cubic-bezier(.2,.9,.2,1);flex-wrap:nowrap}
     .carousel-item{min-width:100%;box-sizing:border-box;padding:18px}
     .carousel{box-sizing:border-box;width:100%;}
     .carousel-track{box-sizing:border-box;will-change:transform;}
     .carousel-item img{max-width:100%;height:auto;border-radius:10px}
 
-    .notice-big{padding:28px;border-radius:12px;color:white;display:flex;gap:18px;align-items:flex-start}
+    .notice-big{padding:28px;border-radius:12px;color:white;display:flex;gap:18px;align-items:flex-start;overflow-wrap:break-word}
     .notice-big h2{font-size:1.7rem;margin:0}
     .notice-desc{opacity:0.95}
 
@@ -32,7 +34,7 @@
     .notice-thumb-list{display:flex;gap:8px;margin-top:12px}
     .notice-thumb{flex:0 0 100px;padding:8px;border-radius:10px;background:white;cursor:pointer;box-shadow:0 6px 20px rgba(2,6,23,.08)}
 
-    .link-card{display:flex;gap:12px;align-items:center;padding:12px;border-radius:10px;background:white;box-shadow:0 8px 24px rgba(2,6,23,.04);transition:transform .18s}
+    .link-card{display:flex;gap:12px;align-items:center;padding:12px;border-radius:10px;background:white;box-shadow:0 8px 24px rgba(2,6,23,.04);transition:transform .18s;overflow-wrap:break-word}
     .link-card:hover{transform:translateY(-6px)}
     .link-thumb{width:84px;height:56px;object-fit:cover;border-radius:8px}
 
