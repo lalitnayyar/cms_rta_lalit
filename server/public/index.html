@@ -25,6 +25,13 @@
     .link-thumb{width:88px;height:56px;object-fit:cover;border-radius:8px}
 
     @media (max-width:768px){ .notice-img{width:120px;height:80px} .link-thumb{width:64px;height:44px} }
+
+    /* Fallback layout when Tailwind/utility CSS is not present */
+    .layout-grid{display:grid;grid-template-columns:1fr;gap:24px}
+    @media(min-width:768px){ .layout-grid{grid-template-columns:280px 1fr;align-items:start} }
+    aside{display:block}
+    .sticky{position:sticky;top:24px}
+    .link-card, .notice-card{background:white}
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -41,7 +48,7 @@
       </div>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 layout-grid">
       <!-- LEFT: LINKS -->
       <aside class="md:col-span-1">
         <div class="sticky top-6 space-y-4">
