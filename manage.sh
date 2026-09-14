@@ -69,6 +69,15 @@ CREATE TABLE IF NOT EXISTS notices (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS notices_history AS SELECT * FROM notices WHERE 0;
+
+-- Settings table for site headings and small key/value pairs
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+-- seed defaults
+INSERT OR REPLACE INTO settings(key,value) VALUES('heading1','CRTA — Notices & Resources');
+INSERT OR REPLACE INTO settings(key,value) VALUES('heading2','A clean, focused feed of important updates and quick links.');
 SQL
     elif command -v python3 >/dev/null 2>&1; then
       python3 - <<PY
@@ -110,6 +119,15 @@ CREATE TABLE IF NOT EXISTS notices (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS notices_history AS SELECT * FROM notices WHERE 0;
+
+# Settings table for site headings and small key/value pairs
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+# seed defaults
+INSERT OR REPLACE INTO settings(key,value) VALUES('heading1','CRTA — Notices & Resources');
+INSERT OR REPLACE INTO settings(key,value) VALUES('heading2','A clean, focused feed of important updates and quick links.');
 """)
 conn.commit()
 print('OK')
@@ -625,7 +643,7 @@ main_menu() {
     echo "12) toggle-link 13) add-notice 14) list-notices 15) expire-notices"
     echo "16) record-visit 17) show-audit 18) test 19) shell 20) help 21) exit"
     echo "22) delete-docker 23) server-users 24) init-settings"
-    read -r -p "Choose an option [1-23]: " choice
+    read -r -p "Choose an option [1-24]: " choice
     case "$choice" in
       1) start_server ;; 
       2) start_server_bg ;; 
