@@ -3,39 +3,122 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CRTA Admin Login</title>
-  <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:24px}
-    .box{max-width:720px;margin:0 auto}
-    label{display:block;margin-top:12px}
-    input{width:100%;padding:8px;margin-top:4px}
-    button{margin-top:12px;padding:8px 12px}
-    pre{background:#f5f5f5;padding:12px;border-radius:6px;white-space:pre-wrap}
-  </style>
+  <title>CRTA Admin</title>
+  <!-- Use built Tailwind CSS if present; fallback to CDN for dev only -->
+  <link rel="stylesheet" href="/dist/styles.css" />
+  <script>
+    // If built CSS isn't loaded (404), load CDN as fallback
+    (function(){
+      var xhr = new XMLHttpRequest();
+      xhr.open('HEAD','/dist/styles.css');
+      xhr.onload = function(){ if(xhr.status===404) { var s=document.createElement('script'); s.src='https://cdn.tailwindcss.com'; document.head.appendChild(s); } };
+      xhr.onerror = function(){ var s=document.createElement('script'); s.src='https://cdn.tailwindcss.com'; document.head.appendChild(s); };
+      xhr.send();
+    })();
+  </script>
 </head>
-<body>
-  <div class="box">
-    <h1>CRTA Admin</h1>
+<body class="bg-gray-50 text-gray-800">
+  <div class="max-w-4xl mx-auto p-6">
+    <div class="bg-white shadow rounded-lg p-6">
+      <h1 class="text-2xl font-semibold mb-4">CRTA Admin</h1>
 
-    <div id="loginForm">
-      <label>Username (uid)
-        <input id="uid" type="text" placeholder="admin" />
-      </label>
-      <label>Password
-        <input id="pw" type="password" placeholder="password" />
-      </label>
-      <button id="btnLogin">Login</button>
-      <div id="msg" style="margin-top:8px;color:#900"></div>
-    </div>
+      <div id="loginForm">
+        <label class="block mb-2">Username (uid)
+          <input id="uid" type="text" placeholder="admin" class="mt-1 block w-full border rounded px-3 py-2" />
+        </label>
+        <label class="block mb-2">Password
+          <input id="pw" type="password" placeholder="password" class="mt-1 block w-full border rounded px-3 py-2" />
+        </label>
+        <div class="flex items-center gap-3 mt-3">
+          <button id="btnLogin" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Login</button>
+          <div id="msg" class="text-red-600"></div>
+        </div>
+      </div>
 
-    <div id="after" style="display:none;margin-top:18px">
-      <p>Logged in as <strong id="who"></strong></p>
-      <button id="btnLogout">Logout</button>
-      <hr />
-      <h3>Admin API</h3>
-      <button id="btnLinks">Fetch links (/admin/links)</button>
-      <button id="btnCreateLink">Create sample link</button>
-      <pre id="out"></pre>
+      <div id="after" class="mt-6" style="display:none">
+        <div class="flex justify-between items-center">
+          <p>Logged in as <strong id="who"></strong></p>
+          <div>
+            <button id="btnLogout" class="text-sm text-gray-600 hover:underline">Logout</button>
+          </div>
+        </div>
+
+        <hr class="my-4" />
+        <h3 class="text-lg font-medium">Admin API</h3>
+        <div class="flex flex-wrap gap-3 mt-2">
+          <button id="btnLinks" class="px-3 py-1 bg-gray-100 rounded hover:shadow">Fetch links</button>
+          <button id="btnCreateLink" class="px-3 py-1 bg-gray-100 rounded hover:shadow">Create sample link</button>
+          <button id="btnNotices" class="px-3 py-1 bg-gray-100 rounded hover:shadow">Fetch notices</button>
+          <button id="btnUsers" class="px-3 py-1 bg-gray-100 rounded hover:shadow">Fetch users</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <section class="bg-gray-50 p-4 rounded shadow-sm">
+            <h4 class="font-semibold mb-2">Create / Edit notice</h4>
+            <!-- notice form -->
+            <label class="block text-sm mb-2">Image URL
+              <input id="n_image" type="text" placeholder="/images/foo.png" class="mt-1 block w-full border rounded px-3 py-2" />
+            </label>
+            <label class="block text-sm mb-2">Heading
+              <input id="n_heading" type="text" placeholder="Big news" class="mt-1 block w-full border rounded px-3 py-2" />
+            </label>
+            <label class="block text-sm mb-2">Description
+              <textarea id="n_description" rows="4" class="mt-1 block w-full border rounded px-3 py-2"></textarea>
+            </label>
+            <label class="block text-sm mb-2">Publish at (local)
+              <input id="n_publish" type="datetime-local" class="mt-1 block w-full border rounded px-3 py-2" />
+            </label>
+            <label class="block text-sm mb-2">Expires at (local)
+              <input id="n_expires" type="datetime-local" class="mt-1 block w-full border rounded px-3 py-2" />
+            </label>
+            <label class="block text-sm mb-3">Priority
+              <select id="n_priority" class="mt-1 block w-full border rounded px-2 py-2">
+                <option>High</option>
+                <option selected>Medium</option>
+                <option>Low</option>
+              </select>
+            </label>
+            <div class="flex gap-2">
+              <button id="btnCreateNotice" class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 transition">Create notice</button>
+              <button id="btnCancelEdit" class="bg-gray-200 px-3 py-2 rounded hidden">Cancel</button>
+            </div>
+          </section>
+
+          <section class="p-2">
+            <h4 class="font-semibold mb-2">Notices</h4>
+            <div id="noticesOut" class="space-y-3"></div>
+          </section>
+        </div>
+
+        <hr class="my-4" />
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <section class="bg-gray-50 p-4 rounded shadow-sm">
+            <h4 class="font-semibold mb-2">Links</h4>
+            <div class="mb-3">
+              <button id="btnCreateLinkForm" class="px-3 py-1 bg-green-600 text-white rounded">New Link</button>
+            </div>
+            <div id="linksForm" style="display:none">
+              <label class="block mb-2">URL<input id="l_url" class="mt-1 block w-full border rounded px-3 py-2" /></label>
+              <label class="block mb-2">Heading<input id="l_heading" class="mt-1 block w-full border rounded px-3 py-2" /></label>
+              <label class="block mb-2">Description<textarea id="l_description" rows="3" class="mt-1 block w-full border rounded px-3 py-2"></textarea></label>
+              <label class="block mb-2">Enabled<select id="l_enabled" class="mt-1 block w-full border rounded px-2 py-2"><option value="1">Yes</option><option value="0">No</option></select></label>
+              <label class="block mb-2">Theme tag<input id="l_theme" class="mt-1 block w-full border rounded px-3 py-2" /></label>
+              <div class="flex gap-2"><button id="btnSaveLink" class="bg-blue-600 text-white px-3 py-2 rounded">Save</button><button id="btnCancelLink" class="bg-gray-200 px-3 py-2 rounded">Cancel</button></div>
+            </div>
+            <div id="linksOut" class="mt-3 space-y-2"></div>
+          </section>
+
+          <section class="bg-gray-50 p-4 rounded shadow-sm">
+            <h4 class="font-semibold mb-2">Users</h4>
+            <label class="block mb-2">UID<input id="u_uid" class="mt-1 block w-full border rounded px-3 py-2" /></label>
+            <label class="block mb-2">Password<input id="u_pw" type="password" class="mt-1 block w-full border rounded px-3 py-2" /></label>
+            <div class="flex gap-2"><button id="btnCreateUser" class="bg-green-600 text-white px-3 py-2 rounded">Create user</button><button id="btnFetchUsers" class="bg-gray-100 px-3 py-2 rounded">Fetch users</button></div>
+            <div id="usersOut" class="mt-3 space-y-2"></div>
+          </section>
+        </div>
+
+        <pre id="out" class="mt-4 bg-gray-100 p-3 rounded text-sm"></pre>
+      </div>
     </div>
   </div>
 

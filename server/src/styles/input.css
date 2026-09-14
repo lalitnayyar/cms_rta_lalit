@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* small helper for notice card priority */
+.priority-high { @apply text-red-600; }
+.priority-medium { @apply text-yellow-600; }
+.priority-low { @apply text-gray-600; }

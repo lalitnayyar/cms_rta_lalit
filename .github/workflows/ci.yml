@@ -1,21 +1,41 @@
-name: CI
+name: CI Build
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-      - name: Install server deps
+
+      - name: Install server dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Build frontend CSS
+        working-directory: ./server
+        run: npm run build
+
+      - name: Build Docker image
         run: |
-          cd server
-          npm ci
-      - name: Run tests
+          docker build -t crta-server:latest ./server
+
+      - name: (Optional) Push image to Docker Hub
+        if: secrets.DOCKERHUB_USERNAME && secrets.DOCKERHUB_TOKEN
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          cd server
-          npm test
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          docker tag crta-server:latest $DOCKERHUB_USERNAME/crta-server:latest
+          docker push $DOCKERHUB_USERNAME/crta-server:latest

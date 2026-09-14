@@ -17,16 +17,12 @@ RUN apt-get update \
 # Copy package files and install dependencies
 COPY server/package.json server/package-lock.json* ./server/
 WORKDIR /app/server
-# Use npm ci if lockfile exists, otherwise fall back to npm install (production only)
-RUN if [ -f package-lock.json ]; then \
-      npm ci --only=production; \
-    else \
-      # create a minimal package.json containing only dependencies to avoid installing devDependencies
-      node -e "const fs=require('fs');const p=require('./package.json');const out={name:p.name,version:p.version,private:p.private,dependencies:p.dependencies};if(p.scripts&&p.scripts.start)out.scripts={start:p.scripts.start};fs.writeFileSync('package.json',JSON.stringify(out,null,2));" && \
-      npm install --production --no-audit --no-fund; \
-    fi
+# Install deps (including devDependencies) to run build steps, then build assets and prune devDeps for smaller runtime image
+RUN npm ci \
+  && npm run build \
+  && npm prune --production || true
 
-# Copy application code
+# Copy application code (after deps to leverage caching)
 COPY server/ ./
 
 ENV PORT=4000
