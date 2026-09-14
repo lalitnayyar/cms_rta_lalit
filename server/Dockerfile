@@ -18,8 +18,13 @@ RUN apt-get update \
 COPY server/package.json server/package-lock.json* ./server/
 WORKDIR /app/server
 # Install deps first to leverage Docker cache
-# Use npm ci when a lockfile is present; otherwise fall back to npm install
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+# Use npm ci when a lockfile is present; otherwise install production deps and then only the build toolchain (tailwind/postcss) to avoid pulling full devDependencies
+RUN if [ -f package-lock.json ]; then \
+      npm ci; \
+    else \
+      npm install --production --no-audit --no-fund && \
+      npm install --no-save tailwindcss postcss autoprefixer; \
+    fi
 
 # Copy application code (includes src/styles and public)
 COPY server/ ./
