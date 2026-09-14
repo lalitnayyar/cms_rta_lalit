@@ -295,9 +295,19 @@ pull_latest() {
 }
 
 deploy_compose() {
+  # prefer docker-compose binary, fallback to 'docker compose' if plugin exists
+  if command -v docker-compose >/dev/null 2>&1; then
+    DC="docker-compose"
+  elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    DC="docker compose"
+  else
+    echo "Neither 'docker-compose' nor 'docker compose' available. Install Docker Compose or Docker CLI with compose plugin." >&2
+    return 1
+  fi
+
   if [ -f docker-compose.yml ]; then
-    if confirm "Run docker-compose up -d --build?"; then
-      docker-compose up -d --build
+    if confirm "Run $DC up -d --build?"; then
+      $DC up -d --build
     fi
   elif [ -f server/Dockerfile ]; then
     if confirm "Build server image and run container (exposes PORT 4000)?"; then
@@ -310,10 +320,19 @@ deploy_compose() {
 }
 
 redeploy_compose() {
+  if command -v docker-compose >/dev/null 2>&1; then
+    DC="docker-compose"
+  elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    DC="docker compose"
+  else
+    echo "Neither 'docker-compose' nor 'docker compose' available. Install Docker Compose or Docker CLI with compose plugin." >&2
+    return 1
+  fi
+
   if [ -f docker-compose.yml ]; then
-    if confirm "Pull images and redeploy (docker-compose pull && up -d --build)?"; then
-      docker-compose pull || true
-      docker-compose up -d --build
+    if confirm "Pull images and redeploy ($DC pull && $DC up -d --build)?"; then
+      $DC pull || true
+      $DC up -d --build
     fi
   else
     echo "No docker-compose.yml found."
