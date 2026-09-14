@@ -17,7 +17,12 @@ RUN apt-get update \
 # Copy package files and install dependencies
 COPY server/package.json server/package-lock.json* ./server/
 WORKDIR /app/server
-RUN npm ci --only=production
+# Use npm ci if lockfile exists, otherwise fall back to npm install (omit dev deps)
+RUN if [ -f package-lock.json ]; then \
+      npm ci --only=production; \
+    else \
+      npm install --omit=dev --no-audit --no-fund; \
+    fi
 
 # Copy application code
 COPY server/ ./
