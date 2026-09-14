@@ -21,7 +21,7 @@ WORKDIR /app/server
 RUN if [ -f package-lock.json ]; then \
       npm ci --only=production; \
     else \
-      npm install --omit=dev --no-audit --no-fund; \
+      npm install --production --no-audit --no-fund; \
     fi
 
 # Copy application code
