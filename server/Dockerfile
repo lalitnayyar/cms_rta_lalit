@@ -18,9 +18,11 @@ RUN apt-get update \
 COPY server/package.json server/package-lock.json* ./server/
 WORKDIR /app/server
 # Install deps first to leverage Docker cache
-# Use npm ci when a lockfile is present; otherwise create a minimal package.json containing only runtime deps + build toolchain and run npm install
+# Use npm ci when a lockfile is present; otherwise if built CSS already exists skip build toolchain, else create a minimal package.json with build toolchain
 RUN if [ -f package-lock.json ]; then \
       npm ci; \
+    elif [ -f public/dist/styles.css ]; then \
+      npm install --production --no-audit --no-fund; \
     else \
       node -e "const fs=require('fs');const p=require('./package.json');const deps=p.dependencies||{};deps['tailwindcss']='^3.5.8';deps['postcss']='^8.4.24';deps['autoprefixer']='^10.4.14';const out={name:p.name||'crta',version:p.version||'1.0.0',private:true,dependencies:deps};fs.writeFileSync('package.json',JSON.stringify(out,null,2));" && \
       npm install --no-audit --no-fund; \
