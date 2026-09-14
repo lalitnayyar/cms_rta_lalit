@@ -72,8 +72,8 @@ CREATE TABLE IF NOT EXISTS notices_history AS SELECT * FROM notices WHERE 0;
 SQL
     elif command -v python3 >/dev/null 2>&1; then
       python3 - <<PY
-import sqlite3
-conn=sqlite3.connect(r'"$DB_FILE"')
+import sqlite3, os
+conn=sqlite3.connect(os.path.abspath(os.environ.get('DB_FILE', 'data/site.db')))
 cur=conn.cursor()
 cur.executescript(r"""
 PRAGMA foreign_keys = ON;
