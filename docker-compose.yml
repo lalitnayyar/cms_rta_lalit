@@ -11,5 +11,7 @@ services:
       - PORT=4000
     volumes:
       - ./server:/app/server
+      # preserve image-installed node_modules by creating an anonymous volume
+      - /app/server/node_modules
       - ./data:/app/data
     restart: unless-stopped
