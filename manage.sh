@@ -295,22 +295,29 @@ pull_latest() {
 }
 
 deploy_compose() {
-  # prefer docker-compose binary, fallback to 'docker compose' if plugin exists
+  # detect compose command (docker-compose or docker compose)
+  DC=""
   if command -v docker-compose >/dev/null 2>&1; then
     DC="docker-compose"
   elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
     DC="docker compose"
-  else
-    echo "Neither 'docker-compose' nor 'docker compose' available. Install Docker Compose or Docker CLI with compose plugin." >&2
-    return 1
   fi
 
-  if [ -f docker-compose.yml ]; then
+  if [ -n "$DC" ] && [ -f docker-compose.yml ]; then
     if confirm "Run $DC up -d --build?"; then
       $DC up -d --build
     fi
-  elif [ -f server/Dockerfile ]; then
-    if confirm "Build server image and run container (exposes PORT 4000)?"; then
+    return
+  fi
+
+  # Fallback: if docker-compose isn't available (or compose file missing), build and run Dockerfile
+  if [ -f server/Dockerfile ]; then
+    if confirm "Docker Compose unavailable or not desired. Build server image and run container (exposes PORT 4000)?"; then
+      # stop existing container if present
+      if docker ps -a --format '{{.Names}}' | grep -q '^crta-server$'; then
+        echo "Stopping existing crta-server container..."
+        docker rm -f crta-server || true
+      fi
       docker build -f server/Dockerfile -t crta-server:latest .
       docker run -d -p 4000:4000 -v "$(pwd)/data:/app/data" --name crta-server crta-server:latest
     fi
@@ -320,22 +327,33 @@ deploy_compose() {
 }
 
 redeploy_compose() {
+  DC=""
   if command -v docker-compose >/dev/null 2>&1; then
     DC="docker-compose"
   elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
     DC="docker compose"
-  else
-    echo "Neither 'docker-compose' nor 'docker compose' available. Install Docker Compose or Docker CLI with compose plugin." >&2
-    return 1
   fi
 
-  if [ -f docker-compose.yml ]; then
+  if [ -n "$DC" ] && [ -f docker-compose.yml ]; then
     if confirm "Pull images and redeploy ($DC pull && $DC up -d --build)?"; then
       $DC pull || true
       $DC up -d --build
     fi
+    return
+  fi
+
+  # Fallback to Dockerfile build/run deployment if compose not available
+  if [ -f server/Dockerfile ]; then
+    if confirm "Compose unavailable. Rebuild image and restart container?"; then
+      if docker ps -a --format '{{.Names}}' | grep -q '^crta-server$'; then
+        echo "Stopping existing crta-server container..."
+        docker rm -f crta-server || true
+      fi
+      docker build -f server/Dockerfile -t crta-server:latest .
+      docker run -d -p 4000:4000 -v "$(pwd)/data:/app/data" --name crta-server crta-server:latest
+    fi
   else
-    echo "No docker-compose.yml found."
+    echo "No docker-compose.yml or server/Dockerfile found."
   fi
 }
 
