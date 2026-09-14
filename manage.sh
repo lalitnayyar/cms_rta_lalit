@@ -73,14 +73,29 @@ SQL
 }
 
 hash_password() {
-  # SHA-256 with username salt for minimal safety (no deps)
-  username="$1"; password="$2"
-  python3 - "$username" "$password" <<'PY'
+  # SHA-256 with username salt for minimal safety (uses python3 if available, otherwise openssl)
+  username="$1"
+  password="$2"
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - <<PY "$username" "$password"
 import hashlib,sys
 u=sys.argv[1].encode()
 p=sys.argv[2].encode()
 print(hashlib.sha256(u + b':' + p).hexdigest())
 PY
+  else
+    if command -v openssl >/dev/null 2>&1; then
+      printf "%s:%s" "$username" "$password" | openssl dgst -sha256 -binary | xxd -p -c 256
+    else
+      echo "Error: python3 or openssl required to hash passwords" >&2
+      exit 1
+    fi
+  fi
+}
+
+# Escape single quotes for safe SQL insertion into SQLite
+escape_sql() {
+  printf "%s" "$1" | sed "s/'/''/g"
 }
 
 create_admin_cli() {
@@ -92,12 +107,15 @@ create_admin_cli() {
     [ "$pw1" = "$pw2" ] && break || echo "Passwords do not match, try again.";
   done
   pwd_hash=$(hash_password "$username" "$pw1")
+  u=$(escape_sql "$username")
+  ph=$(escape_sql "$pwd_hash")
   $SQLITE_BIN "$DB_FILE" <<SQL
-INSERT OR IGNORE INTO admins (username, password_hash) VALUES ('$username', '$pwd_hash');
+INSERT OR IGNORE INTO admins (username, password_hash) VALUES ('$u', '$ph');
 SELECT 'OK' as status;
 SQL
   echo "Admin '$username' created (or already existed)."
 }
+
 
 add_link_cli() {
   ensure_db || return 1
@@ -107,14 +125,20 @@ add_link_cli() {
   read -r -p "Short description (optional): " desc
   read -r -p "Theme tag (optional, e.g., blue/light): " theme
   enabled=1
+  ue=$(escape_sql "$url")
+  ie=$(escape_sql "$image")
+  he=$(escape_sql "$heading")
+  de=$(escape_sql "$desc")
+  te=$(escape_sql "$theme")
   $SQLITE_BIN "$DB_FILE" <<SQL
 INSERT INTO links (url,image,heading,description,enabled,theme_tag) VALUES (
-  '$url','$image','$heading','$desc',$enabled,'$theme'
+  '$ue','$ie','$he','$de',$enabled,'$te'
 );
 SELECT last_insert_rowid();
 SQL
   echo "Link added."
 }
+
 
 list_links_cli() {
   ensure_db || return 1
@@ -140,16 +164,20 @@ add_notice_cli() {
   read -r -p "Expires at (YYYY-MM-DD HH:MM) or leave blank for none: " expires
   pub_sql="NULL"
   exp_sql="NULL"
-  [ -n "$publish" ] && pub_sql="'$publish'"
-  [ -n "$expires" ] && exp_sql="'$expires'"
+  [ -n "$publish" ] && pub_sql="'$(escape_sql "$publish")'"
+  [ -n "$expires" ] && exp_sql="'$(escape_sql "$expires")'"
+  ie=$(escape_sql "$image")
+  he=$(escape_sql "$heading")
+  de=$(escape_sql "$desc")
   $SQLITE_BIN "$DB_FILE" <<SQL
 INSERT INTO notices (image,heading,description,publish_at,expires_at) VALUES (
-  '$image','$heading','$desc',$pub_sql,$exp_sql
+  '$ie','$he','$de',$pub_sql,$exp_sql
 );
 SELECT last_insert_rowid();
 SQL
   echo "Notice added."
 }
+
 
 list_notices_cli() {
   ensure_db || return 1
@@ -188,10 +216,12 @@ record_visit_cli() {
   read -r -p "Link id (or leave blank): " lid
   read -r -p "Visitor IP (optional, will try to detect): " ip
   if [ -z "$ip" ]; then ip="unknown"; fi
-  if [ -z "$lid" ]; then lid=NULL; fi
-  $SQLITE_BIN "$DB_FILE" "INSERT INTO visits (link_id,ip) VALUES ($lid,'$ip');"
+  if [[ "$lid" =~ ^[0-9]+$ ]]; then lid_sql=$lid; else lid_sql=NULL; fi
+  ip_e=$(escape_sql "$ip")
+  $SQLITE_BIN "$DB_FILE" "INSERT INTO visits (link_id,ip) VALUES ($lid_sql,'$ip_e');"
   echo "Visit recorded."
 }
+
 
 # Start server foreground (interactive)
 start_server() {
