@@ -29,9 +29,9 @@ RUN if [ -f package-lock.json ]; then \
 # Copy application code (includes src/styles and public)
 COPY server/ ./
 
-# Build frontend assets, then prune devDependencies for smaller runtime image
-RUN npm run build \
-  && npm prune --production || true
+# Build frontend assets, but do not fail the image build if the toolchain/preset is unavailable.
+# Admin UI falls back to the CDN when /dist/styles.css is missing.
+RUN (npm run build || echo 'npm build failed — continuing with CDN fallback') && npm prune --production || true
 
 ENV PORT=4000
 EXPOSE 4000
