@@ -71,3 +71,19 @@ Contributing
 
 License
 - Add a LICENSE file if desired.
+
+Docker deployment
+
+1) Build the Docker image (from repo root):
+   docker build -f server/Dockerfile -t crta-server:latest .
+
+2) Run the container:
+   docker run -p 4000:4000 -v "$(pwd)/data:/app/data" crta-server:latest
+
+Or use docker-compose for development (bind-mounts are configured to keep code editable):
+   docker-compose up --build
+
+Notes
+- The Docker image installs the sqlite3 system binary so manage.sh and the server can use data/site.db.
+- Compose mounts ./server into the container for easy development; in production remove the volume to use the image's code.
+- Ensure the ./data directory is writable by the container (the compose file mounts it to /app/data).
