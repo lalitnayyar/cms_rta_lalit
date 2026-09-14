@@ -33,7 +33,8 @@ ensure_db() {
   mkdir -p "$DB_DIR"
   if [ ! -f "$DB_FILE" ]; then
     echo "Initializing SQLite DB at $DB_FILE"
-    $SQLITE_BIN "$DB_FILE" <<'SQL'
+    if command -v sqlite3 >/dev/null 2>&1; then
+      $SQLITE_BIN "$DB_FILE" <<'SQL'
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS admins (
   id INTEGER PRIMARY KEY,
@@ -69,6 +70,54 @@ CREATE TABLE IF NOT EXISTS notices (
 );
 CREATE TABLE IF NOT EXISTS notices_history AS SELECT * FROM notices WHERE 0;
 SQL
+    elif command -v python3 >/dev/null 2>&1; then
+      python3 - <<PY
+import sqlite3
+conn=sqlite3.connect(r'"$DB_FILE"')
+cur=conn.cursor()
+cur.executescript(r"""
+PRAGMA foreign_keys = ON;
+CREATE TABLE IF NOT EXISTS admins (
+  id INTEGER PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS links (
+  id INTEGER PRIMARY KEY,
+  url TEXT NOT NULL,
+  image TEXT,
+  heading TEXT,
+  description TEXT,
+  enabled INTEGER DEFAULT 1,
+  theme_tag TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS visits (
+  id INTEGER PRIMARY KEY,
+  link_id INTEGER,
+  ip TEXT,
+  visited_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(link_id) REFERENCES links(id)
+);
+CREATE TABLE IF NOT EXISTS notices (
+  id INTEGER PRIMARY KEY,
+  image TEXT,
+  heading TEXT,
+  description TEXT,
+  publish_at DATETIME,
+  expires_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS notices_history AS SELECT * FROM notices WHERE 0;
+""")
+conn.commit()
+print('OK')
+PY
+    else
+      echo "sqlite3 or python3 required to initialize DB" >&2
+      return 1
+    fi
   fi
 }
 
@@ -347,6 +396,34 @@ pull_latest() {
   fi
 }
 
+# Remove docker containers/images used by this project
+delete_docker() {
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "docker not installed"; return 1
+  fi
+  # Prefer docker-compose down if compose file present
+  if [ -f docker-compose.yml ] && command -v docker-compose >/dev/null 2>&1; then
+    if confirm "Stop and remove compose services and images?"; then
+      docker-compose down --rmi all --volumes || true
+    fi
+    return
+  elif [ -f docker-compose.yml ] && docker --help 2>/dev/null | grep -q compose; then
+    if confirm "Stop and remove docker compose services and images?"; then
+      docker compose down --rmi all --volumes || true
+    fi
+    return
+  fi
+  # Fallback: remove known containers/images
+  if docker ps -a --format '{{.Names}}' | grep -E 'cms_rta_lalit-web-1|crta-server' >/dev/null 2>&1; then
+    if confirm "Remove containers and images for cms_rta_lalit-web-1/crta-server?"; then
+      docker rm -f cms_rta_lalit-web-1 crta-server || true
+      docker rmi -f cms_rta_lalit-web:latest crta-server:latest || true
+    fi
+  else
+    echo "No known containers found."
+  fi
+}
+
 deploy_compose() {
   # detect compose command (docker-compose or docker compose plugin) without invoking 'docker compose'
   DC=""
@@ -457,6 +534,7 @@ Commands:
  19) shell        - Drop to bash shell
  20) help         - Show this help
  21) exit         - Exit
+ 22) delete-docker - Remove docker containers/images for this project
 EOF
 }
 
@@ -468,7 +546,8 @@ main_menu() {
     echo "7) deploy  8) redeploy  9) create-admin 10) add-link 11) list-links"
     echo "12) toggle-link 13) add-notice 14) list-notices 15) expire-notices"
     echo "16) record-visit 17) show-audit 18) test 19) shell 20) help 21) exit"
-    read -r -p "Choose an option [1-21]: " choice
+    echo "22) delete-docker"
+    read -r -p "Choose an option [1-22]: " choice
     case "$choice" in
       1) start_server ;; 
       2) start_server_bg ;; 
@@ -491,6 +570,7 @@ main_menu() {
       19) bash ;; 
       20) show_help ;; 
       21) echo "Goodbye."; exit 0 ;;
+      22) delete_docker ;; 
       *) echo "Invalid choice";;
     esac
   done
