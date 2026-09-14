@@ -6,143 +6,155 @@
   <title>CRTA — Notices & Links</title>
   <link rel="stylesheet" href="/dist/styles.css">
   <style>
-    /* Bold, attention-grabbing styles */
-    .tile-anim{transition:transform .22s ease,box-shadow .28s ease}
-    .tile-anim:hover{transform:translateY(-8px) scale(1.02);box-shadow:0 18px 40px rgba(2,6,23,.16)}
+    /* Bold, attention-grabbing styles + carousel */
+    :root{--accent:#0ea5a4;--muted:#64748b}
+    body{background:linear-gradient(180deg,#f8fafc 0%, #ffffff 60%)}
+    .hero{background:linear-gradient(90deg,#0f172a,#0ea5a4);color:white;padding:36px;border-radius:12px;box-shadow:0 14px 40px rgba(2,6,23,.12)}
 
-    @keyframes slideInRight{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
-    @keyframes slideInLeft{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
-    @keyframes pulseRed{0%{box-shadow:0 0 0 rgba(0,0,0,0)}50%{box-shadow:0 18px 50px rgba(239,68,68,0.18)}100%{box-shadow:0 0 0 rgba(0,0,0,0)}}
+    .carousel{position:relative;overflow:hidden;border-radius:12px}
+    .carousel-track{display:flex;transition:transform .6s cubic-bezier(.2,.9,.2,1)}
+    .carousel-item{min-width:100%;box-sizing:border-box;padding:18px}
 
-    .notice-card{animation:slideInRight .48s cubic-bezier(.2,.9,.2,1) both}
-    .link-card{animation:slideInLeft .42s cubic-bezier(.2,.9,.2,1) both}
-    .high-priority{animation: pulseRed 1.6s ease-in-out 0s 2}
+    .notice-big{padding:28px;border-radius:12px;color:white;display:flex;gap:18px;align-items:flex-start}
+    .notice-big h2{font-size:1.7rem;margin:0}
+    .notice-desc{opacity:0.95}
 
-    .notice-badge{border-radius:8px;padding:8px 12px;font-weight:800;font-size:0.85rem;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
-    .notice-img{width:160px;height:100px;object-fit:cover;border-radius:10px}
+    .controls{position:absolute;right:12px;top:12px;display:flex;gap:8px}
+    .ctrl{background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border-radius:8px;padding:6px 8px;color:white;cursor:pointer}
 
-    /* Link thumbnail */
-    .link-thumb{width:88px;height:56px;object-fit:cover;border-radius:8px}
+    .notice-thumb-list{display:flex;gap:8px;margin-top:12px}
+    .notice-thumb{flex:0 0 100px;padding:8px;border-radius:10px;background:white;cursor:pointer;box-shadow:0 6px 20px rgba(2,6,23,.08)}
 
-    @media (max-width:768px){ .notice-img{width:120px;height:80px} .link-thumb{width:64px;height:44px} }
+    .link-card{display:flex;gap:12px;align-items:center;padding:12px;border-radius:10px;background:white;box-shadow:0 8px 24px rgba(2,6,23,.04);transition:transform .18s}
+    .link-card:hover{transform:translateY(-6px)}
+    .link-thumb{width:84px;height:56px;object-fit:cover;border-radius:8px}
 
-    /* Fallback layout when Tailwind/utility CSS is not present */
-    .layout-grid{display:grid;grid-template-columns:1fr;gap:24px}
-    @media(min-width:768px){ .layout-grid{grid-template-columns:280px 1fr;align-items:start} }
-    aside{display:block}
-    .sticky{position:sticky;top:24px}
-    .link-card, .notice-card{background:white}
+    /* Priority gradients */
+    .p-high{background:linear-gradient(135deg,#ef4444,#fb7185)}
+    .p-medium{background:linear-gradient(135deg,#f59e0b,#fbbf24)}
+    .p-low{background:linear-gradient(135deg,#10b981,#34d399)}
+
+    .notice-badge{border-radius:999px;padding:6px 10px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,0.08)}
+
+    /* responsive */
+    @media(min-width:768px){
+      .layout-grid{display:grid;grid-template-columns:320px 1fr;gap:28px}
+      .notice-big{padding:32px}
+    }
   </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
-  <main class="max-w-6xl mx-auto p-6">
-    <header class="mb-6 rounded-lg p-6 text-white" style="background:linear-gradient(90deg,#0f172a,#0ea5a4 60%);box-shadow:0 8px 30px rgba(2,6,23,.25)">
-      <div class="flex items-center justify-between gap-4">
+<body>
+  <main class="max-w-7xl mx-auto p-6">
+    <header class="hero mb-6">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
         <div>
-          <h1 class="text-3xl font-extrabold">CRTA — Notices & Resources</h1>
-          <p class="text-sm opacity-90 mt-1">Clear, actionable announcements and curated links for your audience.</p>
+          <h1 style="font-size:28px;margin:0;font-weight:800">CRTA — Notices & Resources</h1>
+          <p style="margin:6px 0 0 0;opacity:.92">A clean, focused feed of important updates and quick links. High-priority items pop visually so your audience notices them first.</p>
         </div>
-        <div class="text-right">
-          <a href="/admin.html" class="inline-block bg-white text-teal-700 px-4 py-2 rounded shadow">Admin</a>
+        <div>
+          <a href="/admin.html" style="background:white;color:var(--accent);padding:10px 14px;border-radius:8px;font-weight:700;text-decoration:none;box-shadow:0 8px 24px rgba(2,6,23,.08)">Admin</a>
         </div>
       </div>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 layout-grid">
-      <!-- LEFT: LINKS -->
-      <aside class="md:col-span-1">
-        <div class="sticky top-6 space-y-4">
-          <div class="bg-white p-4 rounded shadow-sm">
-            <h2 class="font-semibold text-lg">Featured Links</h2>
-            <p class="text-xs text-gray-500 mt-1">Quick access to important resources.</p>
+    <div class="layout-grid">
+      <aside>
+        <div style="position:sticky;top:28px">
+          <div style="background:white;padding:16px;border-radius:10px;box-shadow:0 6px 20px rgba(2,6,23,.04)">
+            <h3 style="margin:0 0 4px 0;font-weight:700">Featured Links</h3>
+            <p style="margin:0;color:var(--muted);font-size:13px">Quick access to important resources.</p>
           </div>
-          <div id="links" class="space-y-3">
-            <div class="text-sm text-gray-600">Loading links…</div>
+
+          <div id="links" style="margin-top:12px;display:flex;flex-direction:column;gap:12px">
+            <div style="color:#64748b;font-size:13px">Loading links…</div>
           </div>
         </div>
       </aside>
 
-      <!-- RIGHT: NOTICES -->
-      <section id="notices" class="md:col-span-2 space-y-4">
-        <!-- notices go here -->
-        <div class="text-sm text-gray-600">Loading notices…</div>
+      <section>
+        <div id="carousel-root">
+          <div class="carousel" id="notice-carousel" style="height:220px">
+            <div class="carousel-track" id="carousel-track">
+              <!-- items injected -->
+            </div>
+            <div class="controls">
+              <div class="ctrl" id="prev">◀</div>
+              <div class="ctrl" id="next">▶</div>
+            </div>
+          </div>
+          <div id="thumbs" class="notice-thumb-list" style="margin-top:12px"></div>
+        </div>
+
+        <div id="notice-list" style="margin-top:18px;display:grid;grid-template-columns:1fr;gap:12px">
+          <!-- fallback list -->
+        </div>
       </section>
     </div>
 
-    <footer class="mt-10 text-xs text-gray-500">Powered by CRTA</footer>
+    <footer style="margin-top:22px;color:#6b7280;font-size:13px">Powered by CRTA</footer>
   </main>
 
 <script>
-function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function parseServerDatetimeAsUTC(dt){const m=String(dt||'').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);if(!m)return new Date(dt);const y=+m[1],mo=+m[2],d=+m[3],hh=+m[4],mm=+m[5],ss=+m[6];return new Date(Date.UTC(y,mo-1,d,hh,mm,ss));}
+function fmt(dt){if(!dt) return '-'; const d=parseServerDatetimeAsUTC(dt); return isNaN(d)?dt:d.toLocaleString();}
 
-function parseServerDatetimeAsUTC(dt){
-  const m = String(dt||'').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);
-  if(!m) return new Date(dt);
-  const y=+m[1], mo=+m[2], d=+m[3], hh=+m[4], mm=+m[5], ss=+m[6];
-  return new Date(Date.UTC(y,mo-1,d,hh,mm,ss));
-}
-function fmt(dt){ if(!dt) return '-'; const d=parseServerDatetimeAsUTC(dt); return isNaN(d)?dt:d.toLocaleString(); }
+function priorityClass(p){ if(p==='High') return 'p-high'; if(p==='Medium') return 'p-medium'; return 'p-low'; }
 
-function priorityColorClass(priority){
-  if(priority==='High') return 'border-l-8 border-red-400 bg-gradient-to-r from-red-50 to-white high-priority';
-  if(priority==='Medium') return 'border-l-8 border-yellow-300 bg-gradient-to-r from-yellow-50 to-white';
-  return 'border-l-8 border-green-200 bg-gradient-to-r from-green-50 to-white';
-}
+let carouselIndex=0, carouselTimer=null;
+function startCarousel(count){ if(carouselTimer) clearInterval(carouselTimer); if(count<=1) return; carouselTimer=setInterval(()=>{ carouselIndex=(carouselIndex+1)%count; updateCarouselPos(); },6000); }
+function updateCarouselPos(){ const track=document.getElementById('carousel-track'); if(!track) return; track.style.transform=`translateX(-${carouselIndex*100}%)`; const thumbs=document.querySelectorAll('.notice-thumb'); thumbs.forEach((t,i)=>t.style.opacity=(i===carouselIndex?1:0.55)); }
 
 async function loadNotices(){
-  const el=document.getElementById('notices');
-  try{
-    const r = await fetch('/api/notices');
-    const list = await r.json();
-    if(!Array.isArray(list)||list.length===0){ el.innerHTML='<div class="text-sm text-gray-600">No active notices.</div>'; return; }
+  const r=await fetch('/api/notices');
+  const list=await r.json();
+  const track=document.getElementById('carousel-track');
+  const thumbs=document.getElementById('thumbs');
+  const listEl=document.getElementById('notice-list');
+  track.innerHTML=''; thumbs.innerHTML=''; listEl.innerHTML='';
+  if(!Array.isArray(list)||list.length===0){ document.getElementById('notice-carousel').style.display='none'; listEl.innerHTML='<div style="color:#64748b">No active notices.</div>'; return; }
 
-    el.innerHTML = list.map((n,i)=>{
-      const colorCls = priorityColorClass(n.priority||'Medium');
-      const badge = `<span class="notice-badge ${n.priority==='High'?'bg-red-600 text-white':n.priority==='Medium'?'bg-yellow-600 text-white':'bg-green-700 text-white'}">${escapeHtml(n.priority||'Medium')}</span>`;
-      const img = n.image?`<div class="ml-6 flex-shrink-0 overflow-hidden"><img class="notice-img" src="${escapeHtml(n.image)}" alt=""></div>`:'';
-      return `
-      <article class="notice-card ${colorCls} bg-white p-4 rounded-lg shadow-md tile-anim" style="animation-delay:${i*50}ms">
-        <div class="flex gap-4 items-start">
-          <div class="flex-1">
-            <div class="flex items-center justify-between gap-4">
-              <h3 class="text-2xl font-extrabold leading-tight">${escapeHtml(n.heading||'(no heading)')}</h3>
-              ${badge}
-            </div>
-            <p class="mt-2 text-sm text-gray-700">${escapeHtml(n.description||'')}</p>
-            <div class="mt-3 text-xs text-gray-500">Publish: ${fmt(n.publish_at)} • Expires: ${fmt(n.expires_at)} • Created: ${fmt(n.created_at)}</div>
-          </div>
-          ${img}
+  list.forEach((n,i)=>{
+    const cls=priorityClass(n.priority||'Medium');
+    // carousel item
+    const item=document.createElement('div'); item.className='carousel-item';
+    item.innerHTML=`<div class="notice-big ${cls}">
+        <div style="flex:1">
+          <h2>${esc(n.heading||'(no heading)')}</h2>
+          <p class="notice-desc" style="margin-top:10px">${esc(n.description||'')}</p>
+          <div style="margin-top:12px;font-size:12px;opacity:0.9">Publish: ${fmt(n.publish_at)} • Expires: ${fmt(n.expires_at)}</div>
         </div>
-      </article>
-      `;
-    }).join('');
-  }catch(e){ el.innerHTML = '<div class="text-sm text-red-600">Failed to load notices</div>'; }
+        ${n.image?`<div><img src="${esc(n.image)}" style="width:200px;height:120px;object-fit:cover;border-radius:10px"></div>`:''}
+      </div>`;
+    track.appendChild(item);
+
+    // thumb
+    const t=document.createElement('div'); t.className='notice-thumb'; t.innerHTML=`<div style="font-weight:700;margin-bottom:6px">${esc(n.heading||'')}</div><div style="font-size:12px;color:#475569">${fmt(n.publish_at)}</div>`;
+    t.addEventListener('click',()=>{ carouselIndex=i; updateCarouselPos(); });
+    thumbs.appendChild(t);
+
+    // fallback list card
+    const card=document.createElement('div'); card.style.padding='12px'; card.style.borderRadius='10px'; card.style.background='#fff'; card.style.boxShadow='0 8px 24px rgba(2,6,23,0.04)';
+    card.innerHTML=`<div style="display:flex;gap:12px;align-items:flex-start"><div style="flex:1"><div style="font-weight:800">${esc(n.heading||'(no heading)')}</div><div style="margin-top:6px;color:#374151">${esc(n.description||'')}</div><div style="margin-top:8px;font-size:12px;color:#6b7280">${fmt(n.publish_at)} • ${fmt(n.expires_at)}</div></div>${n.image?`<img src="${esc(n.image)}" style="width:120px;height:80px;object-fit:cover;border-radius:10px">`:''}</div>`;
+    listEl.appendChild(card);
+  });
+
+  // controls
+  document.getElementById('prev').onclick=()=>{ carouselIndex=(carouselIndex-1+list.length)%list.length; updateCarouselPos(); };
+  document.getElementById('next').onclick=()=>{ carouselIndex=(carouselIndex+1)%list.length; updateCarouselPos(); };
+  updateCarouselPos(); startCarousel(list.length);
 }
 
 async function loadLinks(){
-  const el=document.getElementById('links');
-  try{
-    const r = await fetch('/api/links');
-    const list = await r.json();
-    if(!Array.isArray(list)||list.length===0){ el.innerHTML='<div class="text-sm text-gray-600">No links yet.</div>'; return; }
-
-    el.innerHTML = list.map((l)=>{
-      return `
-      <div class="link-card bg-white p-3 rounded shadow-sm tile-anim flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          ${l.image?`<img class="link-thumb" src="${escapeHtml(l.image)}" alt="">`:''}
-          <div>
-            <div class="font-semibold">${escapeHtml(l.heading||l.url)}</div>
-            <div class="text-sm text-gray-600">${escapeHtml(l.description||'')}</div>
-          </div>
-        </div>
-        <div>
-          <a class="inline-block bg-teal-600 text-white px-3 py-1 rounded shadow" href="${escapeHtml(l.url)}" target="_blank">Visit</a>
-        </div>
-      </div>
-      `;
-    }).join('');
-  }catch(e){ el.innerHTML = '<div class="text-sm text-red-600">Failed to load links</div>'; }
+  const r=await fetch('/api/links');
+  const list=await r.json();
+  const el=document.getElementById('links'); el.innerHTML='';
+  if(!Array.isArray(list)||list.length===0){ el.innerHTML='<div style="color:#64748b">No links yet.</div>'; return; }
+  list.forEach(l=>{
+    const node=document.createElement('div'); node.className='link-card';
+    node.innerHTML=`${l.image?`<img class="link-thumb" src="${esc(l.image)}" alt="">`:''}<div style="flex:1"><div style="font-weight:700">${esc(l.heading||l.url)}</div><div style="color:#6b7280;font-size:13px">${esc(l.description||'')}</div></div><div><a style="background:var(--accent);color:white;padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:700" href="${esc(l.url)}" target="_blank">Visit</a></div>`;
+    el.appendChild(node);
+  });
 }
 
 loadNotices(); loadLinks();
