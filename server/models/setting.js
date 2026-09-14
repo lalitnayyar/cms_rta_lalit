@@ -8,7 +8,8 @@ function get(key, callback){
 }
 
 function set(key, value, callback){
-  db.run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',[key, value], function(err){
+  // Use INSERT OR REPLACE for broader SQLite compatibility
+  db.run('INSERT OR REPLACE INTO settings(key,value) VALUES(?,?)',[key, value], function(err){
     callback(err, this && this.changes);
   });
 }
