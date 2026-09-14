@@ -624,7 +624,7 @@ main_menu() {
     echo "7) deploy  8) redeploy  9) create-admin 10) add-link 11) list-links"
     echo "12) toggle-link 13) add-notice 14) list-notices 15) expire-notices"
     echo "16) record-visit 17) show-audit 18) test 19) shell 20) help 21) exit"
-    echo "22) delete-docker 23) server-users"
+    echo "22) delete-docker 23) server-users 24) init-settings"
     read -r -p "Choose an option [1-23]: " choice
     case "$choice" in
       1) start_server ;; 
@@ -657,4 +657,16 @@ main_menu() {
 }
 
 # run
+if [ "$#" -gt 0 ]; then
+  cmd="$1"
+  case "$cmd" in
+    init-settings) init_settings_cli; exit 0 ;;
+    init-db) ensure_db; exit 0 ;;
+    start) start_server; exit 0 ;;
+    start-bg) start_server_bg; exit 0 ;;
+    status) status_server; exit 0 ;;
+    *) echo "Unknown command: $cmd"; exit 1 ;;
+  esac
+fi
+
 main_menu
