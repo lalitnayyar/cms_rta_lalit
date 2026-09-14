@@ -17,6 +17,9 @@ RUN apt-get update \
 # Copy package files and install dependencies
 COPY server/package.json server/package-lock.json* ./server/
 WORKDIR /app/server
+# If built CSS is present in the repo, copy it first so the build step can detect it
+COPY server/public/dist/styles.css ./public/dist/styles.css
+
 # Install deps first to leverage Docker cache
 # Use npm ci when a lockfile is present; otherwise if built CSS already exists skip build toolchain, else create a minimal package.json with build toolchain
 RUN if [ -f package-lock.json ]; then \
@@ -28,7 +31,7 @@ RUN if [ -f package-lock.json ]; then \
       npm install --no-audit --no-fund; \
     fi
 
-# Copy application code (includes src/styles and public)
+# Copy rest of application code (includes src/styles and public assets)
 COPY server/ ./
 
 # Build frontend assets, but do not fail the image build if the toolchain/preset is unavailable.
