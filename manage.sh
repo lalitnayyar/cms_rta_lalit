@@ -305,7 +305,11 @@ deploy_compose() {
 
   if [ -n "$DC" ] && [ -f docker-compose.yml ]; then
     if confirm "Run $DC up -d --build?"; then
-      $DC up -d --build
+      if [[ "$DC" == *" "* ]]; then
+        eval "$DC up -d --build"
+      else
+        $DC up -d --build
+      fi
     fi
     return
   fi
@@ -336,8 +340,13 @@ redeploy_compose() {
 
   if [ -n "$DC" ] && [ -f docker-compose.yml ]; then
     if confirm "Pull images and redeploy ($DC pull && $DC up -d --build)?"; then
-      $DC pull || true
-      $DC up -d --build
+      if [[ "$DC" == *" "* ]]; then
+        eval "$DC pull" || true
+        eval "$DC up -d --build"
+      else
+        $DC pull || true
+        $DC up -d --build
+      fi
     fi
     return
   fi
