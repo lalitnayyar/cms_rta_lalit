@@ -6,6 +6,10 @@
   <title>CRTA — Notices & Links</title>
   <link rel="stylesheet" href="/dist/styles.css">
   <style>
+    /* Prevent horizontal overflow and make images responsive */
+    html,body{overflow-x:hidden}
+    img{max-width:100%;height:auto;display:block}
+
     /* Bold, attention-grabbing styles + carousel */
     :root{--accent:#0ea5a4;--muted:#64748b}
     body{background:linear-gradient(180deg,#f8fafc 0%, #ffffff 60%)}
@@ -14,6 +18,9 @@
     .carousel{position:relative;overflow:hidden;border-radius:12px}
     .carousel-track{display:flex;transition:transform .6s cubic-bezier(.2,.9,.2,1)}
     .carousel-item{min-width:100%;box-sizing:border-box;padding:18px}
+    .carousel{box-sizing:border-box;width:100%;}
+    .carousel-track{box-sizing:border-box;will-change:transform;}
+    .carousel-item img{max-width:100%;height:auto;border-radius:10px}
 
     .notice-big{padding:28px;border-radius:12px;color:white;display:flex;gap:18px;align-items:flex-start}
     .notice-big h2{font-size:1.7rem;margin:0}
