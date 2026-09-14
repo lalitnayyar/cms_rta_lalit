@@ -1,6 +1,6 @@
 # Dockerfile for CRTA server
 # Uses Debian slim base to ensure sqlite3 binary is available for manage.sh
-FROM node:18-bullseye-slim
+FROM node:18-bookworm-slim
 
 WORKDIR /app
 ENV NODE_ENV=production
