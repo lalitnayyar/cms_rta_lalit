@@ -14,30 +14,59 @@
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
-  <main class="max-w-4xl mx-auto p-6">
-    <header class="mb-6">
-      <h1 class="text-2xl font-semibold">CRTA — Latest Notices</h1>
-      <p class="text-sm text-gray-600">Important announcements and curated links. High-priority notices appear first.</p>
+  <main class="max-w-6xl mx-auto p-6">
+    <header class="mb-6 rounded-lg p-6 text-white" style="background:linear-gradient(90deg,#0f172a,#0ea5a4 60%);box-shadow:0 8px 30px rgba(2,6,23,.25)">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-extrabold">CRTA — Notices & Resources</h1>
+          <p class="text-sm opacity-90 mt-1">Clear, actionable announcements and curated links for your audience.</p>
+        </div>
+        <div class="text-right">
+          <a href="/admin.html" class="inline-block bg-white text-teal-700 px-4 py-2 rounded shadow">Admin</a>
+        </div>
+      </div>
     </header>
 
-    <section id="notices" class="grid grid-cols-1 gap-4 mb-6">
-      <!-- notices go here -->
-      <div class="text-sm text-gray-600">Loading notices…</div>
-    </section>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- LEFT: LINKS -->
+      <aside class="md:col-span-1">
+        <div class="sticky top-6 space-y-4">
+          <div class="bg-white p-4 rounded shadow-sm">
+            <h2 class="font-semibold text-lg">Featured Links</h2>
+            <p class="text-xs text-gray-500 mt-1">Quick access to important resources.</p>
+          </div>
+          <div id="links" class="space-y-3">
+            <div class="text-sm text-gray-600">Loading links…</div>
+          </div>
+        </div>
+      </aside>
 
-    <section>
-      <h2 class="text-lg font-semibold mb-3">Featured Links</h2>
-      <div id="links" class="space-y-3">
-        <div class="text-sm text-gray-600">Loading links…</div>
-      </div>
-    </section>
+      <!-- RIGHT: NOTICES -->
+      <section id="notices" class="md:col-span-2 space-y-4">
+        <!-- notices go here -->
+        <div class="text-sm text-gray-600">Loading notices…</div>
+      </section>
+    </div>
 
-    <footer class="mt-10 text-xs text-gray-500">Powered by CRTA • <a href="/admin.html">Admin</a></footer>
+    <footer class="mt-10 text-xs text-gray-500">Powered by CRTA</footer>
   </main>
 
 <script>
-function fmt(dt){ if(!dt) return '-'; const d=new Date(dt.replace(' ','T')); return isNaN(d)?dt:d.toLocaleString(); }
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function parseServerDatetimeAsUTC(dt){
+  const m = String(dt||'').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);
+  if(!m) return new Date(dt);
+  const y=+m[1], mo=+m[2], d=+m[3], hh=+m[4], mm=+m[5], ss=+m[6];
+  return new Date(Date.UTC(y,mo-1,d,hh,mm,ss));
+}
+function fmt(dt){ if(!dt) return '-'; const d=parseServerDatetimeAsUTC(dt); return isNaN(d)?dt:d.toLocaleString(); }
+
+function priorityColorClass(priority){
+  if(priority==='High') return 'border-l-4 border-red-400 bg-gradient-to-r from-red-50 to-white';
+  if(priority==='Medium') return 'border-l-4 border-yellow-300 bg-gradient-to-r from-yellow-50 to-white';
+  return 'border-l-4 border-green-200 bg-gradient-to-r from-green-50 to-white';
+}
 
 async function loadNotices(){
   const el=document.getElementById('notices');
@@ -45,21 +74,27 @@ async function loadNotices(){
     const r = await fetch('/api/notices');
     const list = await r.json();
     if(!Array.isArray(list)||list.length===0){ el.innerHTML='<div class="text-sm text-gray-600">No active notices.</div>'; return; }
-    el.innerHTML = list.map((n,i)=>`
-      <article class="bg-white p-4 rounded shadow-sm tile-anim fade-in" style="animation-delay:${i*40}ms">
-        <div class="flex justify-between items-start gap-3">
+
+    el.innerHTML = list.map((n,i)=>{
+      const colorCls = priorityColorClass(n.priority||'Medium');
+      const badge = `<span class="inline-block text-xs font-bold px-2 py-1 rounded ${n.priority==='High'?'bg-red-600 text-white':n.priority==='Medium'?'bg-yellow-500 text-white':'bg-green-600 text-white'}">${escapeHtml(n.priority||'Medium')}</span>`;
+      const img = n.image?`<div class="w-28 h-20 flex-shrink-0 overflow-hidden rounded ml-4"><img src="${escapeHtml(n.image)}" alt="" style="width:100%;height:100%;object-fit:cover"></div>`:'';
+      return `
+      <article class="${colorCls} bg-white p-4 rounded-lg shadow-md tile-anim fade-in" style="animation-delay:${i*50}ms">
+        <div class="flex gap-4 items-start">
           <div class="flex-1">
-            <div class="flex items-center justify-between">
-              <h3 class="font-semibold text-lg">${esc(n.heading)}</h3>
-              <span class="font-semibold ${n.priority==='High'?'text-red-600':n.priority==='Medium'?'text-yellow-600':'text-gray-600'}">${esc(n.priority||'Medium')}</span>
+            <div class="flex items-center justify-between gap-4">
+              <h3 class="text-xl font-semibold leading-tight">${escapeHtml(n.heading||'(no heading)')}</h3>
+              ${badge}
             </div>
-            <p class="mt-2 text-sm text-gray-700">${esc(n.description)}</p>
-            <div class="mt-2 text-xs text-gray-500">Publish: ${fmt(n.publish_at)} • Expires: ${fmt(n.expires_at)}</div>
+            <p class="mt-2 text-sm text-gray-700">${escapeHtml(n.description||'')}</p>
+            <div class="mt-3 text-xs text-gray-500">Publish: ${fmt(n.publish_at)} • Expires: ${fmt(n.expires_at)} • Created: ${fmt(n.created_at)}</div>
           </div>
-          ${n.image?`<img src="${esc(n.image)}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:6px;margin-left:12px">`:''}
+          ${img}
         </div>
       </article>
-    `).join('');
+      `;
+    }).join('');
   }catch(e){ el.innerHTML = '<div class="text-sm text-red-600">Failed to load notices</div>'; }
 }
 
@@ -69,19 +104,23 @@ async function loadLinks(){
     const r = await fetch('/api/links');
     const list = await r.json();
     if(!Array.isArray(list)||list.length===0){ el.innerHTML='<div class="text-sm text-gray-600">No links yet.</div>'; return; }
-    el.innerHTML = list.map(l=>`
-      <div class="bg-white p-3 rounded shadow-sm tile-anim">
-        <div class="flex justify-between items-center">
+
+    el.innerHTML = list.map((l)=>{
+      return `
+      <div class="bg-white p-3 rounded shadow-sm tile-anim flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          ${l.image?`<img src="${escapeHtml(l.image)}" style="width:56px;height:40px;object-fit:cover;border-radius:6px">`:''}
           <div>
-            <div class="font-semibold">${esc(l.heading||l.url)}</div>
-            <div class="text-sm text-gray-600">${esc(l.description||'')}</div>
-          </div>
-          <div class="text-right">
-            <a class="inline-block bg-blue-600 text-white px-3 py-1 rounded" href="${esc(l.url)}" target="_blank">Visit</a>
+            <div class="font-semibold">${escapeHtml(l.heading||l.url)}</div>
+            <div class="text-sm text-gray-600">${escapeHtml(l.description||'')}</div>
           </div>
         </div>
+        <div>
+          <a class="inline-block bg-teal-600 text-white px-3 py-1 rounded shadow" href="${escapeHtml(l.url)}" target="_blank">Visit</a>
+        </div>
       </div>
-    `).join('');
+      `;
+    }).join('');
   }catch(e){ el.innerHTML = '<div class="text-sm text-red-600">Failed to load links</div>'; }
 }
 

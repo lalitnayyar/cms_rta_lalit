@@ -71,6 +71,33 @@ router.delete('/notices/:id', (req,res)=>{
   });
 });
 
+// ADMIN STATUS AND DB DOWNLOAD
+const path = require('path');
+const fs = require('fs');
+
+router.get('/status', (req,res)=>{
+  // return counts and DB info
+  db.get('SELECT COUNT(*) AS links FROM links', (err, r1)=>{
+    if(err) return res.status(500).json({ error:'db error' });
+    db.get('SELECT COUNT(*) AS notices FROM notices', (err2, r2)=>{
+      if(err2) return res.status(500).json({ error:'db error' });
+      db.get('SELECT COUNT(*) AS users FROM users', (err3, r3)=>{
+        if(err3) return res.status(500).json({ error:'db error' });
+        const dbPath = path.join(__dirname, '..', 'data.db');
+        let size = null;
+        try{ const st = fs.statSync(dbPath); size = st.size; } catch(e){}
+        res.json({ links: r1.links || 0, notices: r2.notices || 0, users: r3.users || 0, dbPath: '/admin/db', dbSize: size });
+      });
+    });
+  });
+});
+
+router.get('/db', (req,res)=>{
+  const dbPath = path.join(__dirname, '..', 'data.db');
+  if (!fs.existsSync(dbPath)) return res.status(404).json({ error:'no db' });
+  res.download(dbPath, 'data.db');
+});
+
 // USERS management
 router.get('/users', (req,res)=>{
   db.all('SELECT id,uid FROM users', (err,rows)=>{

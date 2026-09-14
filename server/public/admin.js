@@ -22,6 +22,10 @@ async function init(){
   const n_priority = await $('n_priority');
   const noticesOut = await $('noticesOut');
 
+  const btnDbStatus = await $('btnDbStatus');
+  const btnTestLive = await $('btnTestLive');
+
+
   // Links UI
   const btnCreateLinkForm = await $('btnCreateLinkForm');
   const linksForm = await $('linksForm');
@@ -102,16 +106,57 @@ async function init(){
 
   btnNotices.addEventListener('click', fetchNotices);
 
+  btnDbStatus.addEventListener('click', async ()=>{
+    const uid = localStorage.getItem('crta_admin_uid');
+    if(!uid){ out.textContent='Not logged in'; return; }
+    try{
+      const r = await fetch('/admin/status',{headers:{'x-admin-uid':uid}});
+      const j = await r.json();
+      out.textContent = 'DB status: ' + JSON.stringify(j);
+      // show download link
+      const a = document.createElement('a');
+      a.href = '/admin/db?uid='+encodeURIComponent(uid);
+      a.textContent = 'Download DB';
+      a.target = '_blank';
+      out.appendChild(document.createElement('br'));
+      out.appendChild(a);
+    }catch(e){ out.textContent='Error: '+e.message }
+  });
+
+  btnTestLive.addEventListener('click', async ()=>{
+    out.textContent='';
+    try{
+      const r = await fetch('/');
+      out.textContent = 'Live root responded: ' + r.status + ' ' + r.statusText + ' ('+ (r.headers.get('content-type') || '') +')';
+      // open in new tab for manual check
+      window.open('/', '_blank');
+    }catch(e){ out.textContent='Error: '+e.message }
+  });
+
   btnCreateNotice.addEventListener('click', async ()=>{
     const uid = localStorage.getItem('crta_admin_uid');
     if(!uid){ out.textContent='Not logged in'; return; }
-    const toISO = v => v ? (v.replace('T',' ') + ':00') : null; // datetime-local -> 'YYYY-MM-DD HH:MM:SS'
+    // convert datetime-local (local time) to server UTC 'YYYY-MM-DD HH:MM:SS'
+    const localInputToServerUTC = v => {
+      if(!v) return null;
+      // v = 'YYYY-MM-DDTHH:MM' or 'YYYY-MM-DDTHH:MM:SS'
+      const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+      if(!m) return null;
+      const y=+m[1], mo=+m[2], d=+m[3], hh=+m[4], mm=+m[5], ss=+(m[6]||0);
+      // build local Date
+      const local = new Date(y, mo-1, d, hh, mm, ss);
+      // extract UTC components
+      const uy = local.getUTCFullYear(), umo = local.getUTCMonth()+1, ud = local.getUTCDate(), uhh = local.getUTCHours(), umm = local.getUTCMinutes(), uss = local.getUTCSeconds();
+      const pad = n=> String(n).padStart(2,'0');
+      return `${uy}-${pad(umo)}-${pad(ud)} ${pad(uhh)}:${pad(umm)}:${pad(uss)}`;
+    };
+
     const body = {
       image: n_image.value || null,
       heading: n_heading.value || null,
       description: n_description.value || null,
-      publish_at: toISO(n_publish.value),
-      expires_at: toISO(n_expires.value),
+      publish_at: localInputToServerUTC(n_publish.value),
+      expires_at: localInputToServerUTC(n_expires.value),
       priority: n_priority.value || 'Medium'
     };
     try{
@@ -130,17 +175,47 @@ async function init(){
 
   function resetForm(){
     currentEditId = null;
-    n_image.value=''; n_heading.value=''; n_description.value=''; n_publish.value=''; n_expires.value=''; n_priority.value='Medium';
+    n_image.value=''; n_heading.value=''; n_description.value='';
+    // default publish to now (local) and expires to +8 hours
+    n_publish.value = localNowInput(0);
+    n_expires.value = localNowInput(8);
+    n_priority.value='Medium';
     btnCreateNotice.textContent = 'Create notice';
     btnCancelEdit.classList.add('hidden');
   }
 
+  function parseServerDatetimeAsUTC(dt){
+    // dt expected 'YYYY-MM-DD HH:MM:SS'
+    const m = String(dt||'').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);
+    if(!m) return new Date(dt);
+    const y = +m[1], mo = +m[2], d = +m[3], hh = +m[4], mm = +m[5], ss = +m[6];
+    // treat server timestamp as UTC
+    const ms = Date.UTC(y, mo-1, d, hh, mm, ss);
+    return new Date(ms);
+  }
+
   function fmt(dt){
     if(!dt) return '-';
-    // server stores 'YYYY-MM-DD HH:MM:SS' — convert to 'YYYY-MM-DDTHH:MM:SS' for Date parsing
-    const d = new Date(dt.replace(' ','T'));
+    const d = parseServerDatetimeAsUTC(dt);
     if(isNaN(d)) return dt;
     return d.toLocaleString();
+  }
+
+  function serverToLocalInput(s){
+    if(!s) return '';
+    const d = parseServerDatetimeAsUTC(s);
+    if(isNaN(d)) return '';
+    const pad = n=> String(n).padStart(2,'0');
+    const y = d.getFullYear(), mo = pad(d.getMonth()+1), day = pad(d.getDate()), hh = pad(d.getHours()), mm = pad(d.getMinutes());
+    return `${y}-${mo}-${day}T${hh}:${mm}`;
+  }
+
+  function localNowInput(addHours){
+    const now = new Date();
+    if(addHours) now.setHours(now.getHours()+addHours);
+    const pad = n=> String(n).padStart(2,'0');
+    const y = now.getFullYear(), mo = pad(now.getMonth()+1), day = pad(now.getDate()), hh = pad(now.getHours()), mm = pad(now.getMinutes());
+    return `${y}-${mo}-${day}T${hh}:${mm}`;
   }
 
   function renderNotices(list){
@@ -191,9 +266,8 @@ async function init(){
         n_heading.value = ev.target.getAttribute('data-heading') || '';
         n_description.value = ev.target.getAttribute('data-description') || '';
         // convert 'YYYY-MM-DD HH:MM:SS' to 'YYYY-MM-DDTHH:MM' for datetime-local
-        const toLocalInput = s => s ? s.replace(' ', 'T').slice(0,16) : '';
-        n_publish.value = toLocalInput(ev.target.getAttribute('data-publish') || '');
-        n_expires.value = toLocalInput(ev.target.getAttribute('data-expires') || '');
+        n_publish.value = serverToLocalInput(ev.target.getAttribute('data-publish') || '');
+        n_expires.value = serverToLocalInput(ev.target.getAttribute('data-expires') || '');
         n_priority.value = ev.target.getAttribute('data-priority') || 'Medium';
         btnCreateNotice.textContent = 'Update notice';
         btnCancelEdit.classList.remove('hidden');
