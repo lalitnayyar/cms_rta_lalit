@@ -509,6 +509,36 @@ run_tests() {
   fi
 }
 
+# Initialize settings table and seed defaults (idempotent).
+init_settings_cli() {
+  # prefer server DB if present (app uses server/data.db); otherwise fallback to manage data/site.db
+  if [ -f "$ROOT_DIR/server/data.db" ]; then
+    target_db="$ROOT_DIR/server/data.db"
+  else
+    target_db="$DB_FILE"
+  fi
+  if [ -z "$SQLITE_BIN" ]; then
+    echo "sqlite3 CLI required to initialize settings table. Install sqlite3 and retry." >&2
+    return 1
+  fi
+  mkdir -p "$(dirname "$target_db")"
+  echo "Creating settings table in $target_db (if missing) and seeding defaults..."
+  $SQLITE_BIN "$target_db" <<SQL
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+INSERT OR REPLACE INTO settings(key,value) VALUES('heading1','CRTA — Notices & Resources');
+INSERT OR REPLACE INTO settings(key,value) VALUES('heading2','A clean, focused feed of important updates and quick links.');
+SQL
+  if [ $? -eq 0 ]; then
+    echo "Settings table created/seeded in $target_db"
+  else
+    echo "Failed to create/seed settings in $target_db" >&2
+    return 1
+  fi
+}
+
 manage_server_users() {
   # Interactive CRUD for server users inside the running web container
   if ! command -v docker >/dev/null 2>&1; then
@@ -582,6 +612,7 @@ Commands:
  21) exit         - Exit
  22) delete-docker - Remove docker containers/images for this project
  23) server-users  - Interactive CRUD for server users (inside container)
+ 24) init-settings - Create settings table and seed default headings (server/data.db or data/site.db)
 EOF
 }
 
@@ -619,6 +650,7 @@ main_menu() {
       21) echo "Goodbye."; exit 0 ;;
       22) delete_docker ;; 
       23) manage_server_users ;; 
+      24) init_settings_cli ;; 
       *) echo "Invalid choice";;
     esac
   done
