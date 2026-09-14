@@ -1,22 +1,44 @@
 <!doctype html>
-<html>
-  <head><meta charset="utf-8"><title>CRTA Admin</title></head>
-  <body>
-    <h1>Admin UI (placeholder)</h1>
-    <p>This is a minimal admin UI placeholder. Use the /admin API with header 'x-admin-uid: admin' for demo auth.</p>
-    <form id="create">
-      <input name="url" placeholder="URL" required />
-      <input name="heading" placeholder="Heading" />
-      <button type="submit">Create</button>
-    </form>
-    <script>
-      document.getElementById('create').addEventListener('submit', async e=>{
-        e.preventDefault();
-        const form = e.target;
-        const body = { url: form.url.value, heading: form.heading.value };
-        const res = await fetch('/admin/links', {method:'POST', headers:{'Content-Type':'application/json','x-admin-uid':'admin'}, body: JSON.stringify(body)});
-        if (res.ok) alert('Created'); else alert('Error');
-      });
-    </script>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CRTA Admin Login</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:24px}
+    .box{max-width:720px;margin:0 auto}
+    label{display:block;margin-top:12px}
+    input{width:100%;padding:8px;margin-top:4px}
+    button{margin-top:12px;padding:8px 12px}
+    pre{background:#f5f5f5;padding:12px;border-radius:6px;white-space:pre-wrap}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>CRTA Admin</h1>
+
+    <div id="loginForm">
+      <label>Username (uid)
+        <input id="uid" type="text" placeholder="admin" />
+      </label>
+      <label>Password
+        <input id="pw" type="password" placeholder="password" />
+      </label>
+      <button id="btnLogin">Login</button>
+      <div id="msg" style="margin-top:8px;color:#900"></div>
+    </div>
+
+    <div id="after" style="display:none;margin-top:18px">
+      <p>Logged in as <strong id="who"></strong></p>
+      <button id="btnLogout">Logout</button>
+      <hr />
+      <h3>Admin API</h3>
+      <button id="btnLinks">Fetch links (/admin/links)</button>
+      <button id="btnCreateLink">Create sample link</button>
+      <pre id="out"></pre>
+    </div>
+  </div>
+
+  <script src="/admin.js"></script>
+</body>
 </html>
