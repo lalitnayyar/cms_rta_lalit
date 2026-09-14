@@ -509,6 +509,52 @@ run_tests() {
   fi
 }
 
+manage_server_users() {
+  # Interactive CRUD for server users inside the running web container
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "docker required to manage server users (container operations)."; return 1
+  fi
+  # container name from compose: cms_rta_lalit-web-1
+  cnt="cms_rta_lalit-web-1"
+  if ! docker ps --format '{{.Names}}' | grep -q "^$cnt$"; then
+    echo "Container $cnt not running. Start app with ./manage.sh deploy or docker compose up -d."; return 1
+  fi
+  while true; do
+    echo "Server users: 1) list 2) create 3) delete 4) changepw 5) back"
+    read -r -p "Choose [1-5]: " c
+    case "$c" in
+      1)
+        echo "Listing users (id | uid):"
+        docker exec $cnt sqlite3 /app/server/data.db "SELECT id,uid FROM users;" || true
+        ;;
+      2)
+        read -r -p "New uid: " nid
+        read -s -r -p "Password: " npw; echo
+        if [ -z "$nid" ] || [ -z "$npw" ]; then echo "uid and password required"; continue; fi
+        # generate bcrypt hash inside container using node
+        hash=$(docker exec -i $cnt node -e "const bcrypt=require('bcrypt');(async(p)=>{console.log(await bcrypt.hash(p,10))})(process.argv[1])" "$npw" 2>/dev/null | tr -d '\r')
+        if [ -z "$hash" ]; then echo "Failed to generate hash inside container"; continue; fi
+        docker exec $cnt sqlite3 /app/server/data.db "INSERT OR REPLACE INTO users(uid,password_hash) VALUES('$(printf "%s" "$nid" | sed "s/'/''/g")','$(printf "%s" "$hash" | sed "s/'/''/g")');" && echo "User $nid created/updated." || echo "SQLite insert failed." 
+        ;;
+      3)
+        read -r -p "UID to delete: " did
+        if [ -z "$did" ]; then echo "uid required"; continue; fi
+        docker exec $cnt sqlite3 /app/server/data.db "DELETE FROM users WHERE uid='$(printf "%s" "$did" | sed "s/'/''/g")';" && echo "Deleted $did (if existed)." || echo "Delete failed.";
+        ;;
+      4)
+        read -r -p "UID to change password: " cuid
+        read -s -r -p "New password: " cpw; echo
+        if [ -z "$cuid" ] || [ -z "$cpw" ]; then echo "uid and password required"; continue; fi
+        chash=$(docker exec -i $cnt node -e "const bcrypt=require('bcrypt');(async(p)=>{console.log(await bcrypt.hash(p,10))})(process.argv[1])" "$cpw" 2>/dev/null | tr -d '\r')
+        if [ -z "$chash" ]; then echo "Failed to generate hash"; continue; fi
+        docker exec $cnt sqlite3 /app/server/data.db "UPDATE users SET password_hash='$(printf "%s" "$chash" | sed "s/'/''/g")' WHERE uid='$(printf "%s" "$cuid" | sed "s/'/''/g")';" && echo "Password updated for $cuid" || echo "Update failed.";
+        ;;
+      5) break ;;
+      *) echo "Invalid";;
+    esac
+  done
+}
+
 show_help() {
   cat <<EOF
 manage.sh - interactive management for this project
@@ -535,6 +581,7 @@ Commands:
  20) help         - Show this help
  21) exit         - Exit
  22) delete-docker - Remove docker containers/images for this project
+ 23) server-users  - Interactive CRUD for server users (inside container)
 EOF
 }
 
@@ -546,8 +593,8 @@ main_menu() {
     echo "7) deploy  8) redeploy  9) create-admin 10) add-link 11) list-links"
     echo "12) toggle-link 13) add-notice 14) list-notices 15) expire-notices"
     echo "16) record-visit 17) show-audit 18) test 19) shell 20) help 21) exit"
-    echo "22) delete-docker"
-    read -r -p "Choose an option [1-22]: " choice
+    echo "22) delete-docker 23) server-users"
+    read -r -p "Choose an option [1-23]: " choice
     case "$choice" in
       1) start_server ;; 
       2) start_server_bg ;; 
@@ -571,6 +618,7 @@ main_menu() {
       20) show_help ;; 
       21) echo "Goodbye."; exit 0 ;;
       22) delete_docker ;; 
+      23) manage_server_users ;; 
       *) echo "Invalid choice";;
     esac
   done
