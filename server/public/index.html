@@ -1,14 +1,91 @@
 <!doctype html>
-<html>
-  <head><meta charset="utf-8"><title>CRTA - Links</title></head>
-  <body>
-    <h1>CRTA - Public Front Page</h1>
-    <div id="links">Loading links...</div>
-    <script>
-      fetch('/api/links').then(r=>r.json()).then(data=>{
-        const c = document.getElementById('links');
-        c.innerHTML = data.map(l=>`<div><h3>${l.heading||''}</h3><a href="${l.url}">${l.url}</a><p>${l.description||''}</p></div>`).join('\n');
-      }).catch(e=>{document.getElementById('links').innerText='Failed to load links'});
-    </script>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CRTA — Notices & Links</title>
+  <link rel="stylesheet" href="/dist/styles.css">
+  <style>
+    /* simple entrance animation */
+    .fade-in{opacity:0;transform:translateY(8px);animation:enter .5s forwards}
+    @keyframes enter{to{opacity:1;transform:none}}
+    .tile-anim{transition:transform .18s ease,box-shadow .18s ease}
+    .tile-anim:hover{transform:translateY(-6px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <main class="max-w-4xl mx-auto p-6">
+    <header class="mb-6">
+      <h1 class="text-2xl font-semibold">CRTA — Latest Notices</h1>
+      <p class="text-sm text-gray-600">Important announcements and curated links. High-priority notices appear first.</p>
+    </header>
+
+    <section id="notices" class="grid grid-cols-1 gap-4 mb-6">
+      <!-- notices go here -->
+      <div class="text-sm text-gray-600">Loading notices…</div>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-semibold mb-3">Featured Links</h2>
+      <div id="links" class="space-y-3">
+        <div class="text-sm text-gray-600">Loading links…</div>
+      </div>
+    </section>
+
+    <footer class="mt-10 text-xs text-gray-500">Powered by CRTA • <a href="/admin.html">Admin</a></footer>
+  </main>
+
+<script>
+function fmt(dt){ if(!dt) return '-'; const d=new Date(dt.replace(' ','T')); return isNaN(d)?dt:d.toLocaleString(); }
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+async function loadNotices(){
+  const el=document.getElementById('notices');
+  try{
+    const r = await fetch('/api/notices');
+    const list = await r.json();
+    if(!Array.isArray(list)||list.length===0){ el.innerHTML='<div class="text-sm text-gray-600">No active notices.</div>'; return; }
+    el.innerHTML = list.map((n,i)=>`
+      <article class="bg-white p-4 rounded shadow-sm tile-anim fade-in" style="animation-delay:${i*40}ms">
+        <div class="flex justify-between items-start gap-3">
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <h3 class="font-semibold text-lg">${esc(n.heading)}</h3>
+              <span class="font-semibold ${n.priority==='High'?'text-red-600':n.priority==='Medium'?'text-yellow-600':'text-gray-600'}">${esc(n.priority||'Medium')}</span>
+            </div>
+            <p class="mt-2 text-sm text-gray-700">${esc(n.description)}</p>
+            <div class="mt-2 text-xs text-gray-500">Publish: ${fmt(n.publish_at)} • Expires: ${fmt(n.expires_at)}</div>
+          </div>
+          ${n.image?`<img src="${esc(n.image)}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:6px;margin-left:12px">`:''}
+        </div>
+      </article>
+    `).join('');
+  }catch(e){ el.innerHTML = '<div class="text-sm text-red-600">Failed to load notices</div>'; }
+}
+
+async function loadLinks(){
+  const el=document.getElementById('links');
+  try{
+    const r = await fetch('/api/links');
+    const list = await r.json();
+    if(!Array.isArray(list)||list.length===0){ el.innerHTML='<div class="text-sm text-gray-600">No links yet.</div>'; return; }
+    el.innerHTML = list.map(l=>`
+      <div class="bg-white p-3 rounded shadow-sm tile-anim">
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="font-semibold">${esc(l.heading||l.url)}</div>
+            <div class="text-sm text-gray-600">${esc(l.description||'')}</div>
+          </div>
+          <div class="text-right">
+            <a class="inline-block bg-blue-600 text-white px-3 py-1 rounded" href="${esc(l.url)}" target="_blank">Visit</a>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }catch(e){ el.innerHTML = '<div class="text-sm text-red-600">Failed to load links</div>'; }
+}
+
+loadNotices(); loadLinks();
+</script>
+</body>
 </html>
