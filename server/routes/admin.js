@@ -102,7 +102,10 @@ router.get('/db', (req,res)=>{
 // SETTINGS
 router.get('/settings', (req,res)=>{
   Setting.all((err, obj)=>{
-    if(err) return res.status(500).json({ error:'db error' });
+    if(err){
+      console.error('Error fetching settings for admin:', err && err.message);
+      return res.status(500).json({ error: err.message || 'db error' });
+    }
     res.json(obj);
   });
 });
