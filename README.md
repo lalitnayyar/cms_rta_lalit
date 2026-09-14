@@ -85,5 +85,9 @@ Or use docker-compose for development (bind-mounts are configured to keep code e
 
 Notes
 - The Docker image installs the sqlite3 system binary so manage.sh and the server can use data/site.db.
+
+Install sqlite3 locally (Debian/Ubuntu):
+   sudo apt update && sudo apt install -y sqlite3
+
 - Compose mounts ./server into the container for easy development; in production remove the volume to use the image's code.
 - Ensure the ./data directory is writable by the container (the compose file mounts it to /app/data).
