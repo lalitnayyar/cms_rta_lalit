@@ -442,6 +442,29 @@ delete_docker() {
   fi
 }
 
+# Remove matching project-prefixed containers (interactive)
+remove_project_orphans() {
+  # Optional project prefix argument, defaults to current directory basename
+  prefix="${1:-$(basename "$(pwd)") }"
+  # list containers whose names start with prefix_
+  if ! command -v docker >/dev/null 2>&1; then
+    return 0
+  fi
+  orphans=$(docker ps -a --format '{{.Names}}' | grep -E "^${prefix}_" || true)
+  if [ -n "$orphans" ]; then
+    echo "Found containers matching project prefix '$prefix':"
+    echo "$orphans"
+    if confirm "Remove these containers? (They may be old/orphan containers)"; then
+      echo "$orphans" | while read -r c; do
+        [ -n "$c" ] && docker rm -f "$c" || true
+      done
+    else
+      echo "Skipping orphan removal."
+    fi
+  fi
+}
+
+
 deploy_compose() {
   # detect compose command (docker-compose or docker compose plugin) without invoking 'docker compose'
   DC=""
@@ -452,6 +475,9 @@ deploy_compose() {
   fi
 
   if [ -n "$DC" ] && [ -f docker-compose.yml ]; then
+    # Offer to detect and remove orphan containers before running compose up
+    remove_project_orphans "$(basename "$(pwd)")"
+
     if confirm "Run $DC up -d --build --remove-orphans?"; then
       if [[ "$DC" == *" "* ]]; then
         eval "$DC up -d --build --remove-orphans"
