@@ -478,6 +478,52 @@ deploy_compose() {
   fi
 }
 
+
+# Deploy the crta site using the provided docker-compose.crta.yml and ensure Traefik network exists
+deploy_crta() {
+  COMPOSE_FILE="docker-compose.crta.yml"
+  if [ ! -f "$COMPOSE_FILE" ]; then
+    echo "Compose file $COMPOSE_FILE not found in $(pwd)"
+    return 1
+  fi
+
+  # detect compose command
+  DC=""
+  if command -v docker-compose >/dev/null 2>&1; then
+    DC="docker-compose"
+  elif command -v docker >/dev/null 2>&1 && docker --help 2>/dev/null | grep -q "compose"; then
+    DC="docker compose"
+  else
+    echo "docker-compose or docker compose is required to deploy."
+    return 1
+  fi
+
+  # determine desired Traefik network. Can override with TRAEFIK_NETWORK env var
+  NET="${TRAEFIK_NETWORK:-traefik-kpux}"
+  # try to parse a network name from the compose file if it references 'traefik-'
+  if grep -q 'traefik-' "$COMPOSE_FILE" 2>/dev/null; then
+    NET=$(grep -oE 'traefik[-_[:alnum:]]+' "$COMPOSE_FILE" | head -n1)
+  fi
+
+  # ensure network exists
+  if ! docker network ls --format '{{.Name}}' | grep -q "^$NET$"; then
+    if confirm "Docker network '$NET' not found. Create it now?"; then
+      docker network create "$NET" || { echo "Failed to create network $NET"; return 1; }
+    else
+      echo "Cannot continue without network $NET"
+      return 1
+    fi
+  fi
+
+  if confirm "Run $DC -f $COMPOSE_FILE up -d --build?"; then
+    if [[ "$DC" == *" "* ]]; then
+      eval "$DC -f $COMPOSE_FILE up -d --build"
+    else
+      $DC -f $COMPOSE_FILE up -d --build
+    fi
+  fi
+}
+
 redeploy_compose() {
   DC=""
   if command -v docker-compose >/dev/null 2>&1; then
@@ -631,6 +677,7 @@ Commands:
  22) delete-docker - Remove docker containers/images for this project
  23) server-users  - Interactive CRUD for server users (inside container)
  24) init-settings - Create settings table and seed default headings (server/data.db or data/site.db)
+ 25) deploy-crta  - Deploy crta docker-compose (docker-compose.crta.yml) via Traefik network
 EOF
 }
 
@@ -642,8 +689,8 @@ main_menu() {
     echo "7) deploy  8) redeploy  9) create-admin 10) add-link 11) list-links"
     echo "12) toggle-link 13) add-notice 14) list-notices 15) expire-notices"
     echo "16) record-visit 17) show-audit 18) test 19) shell 20) help 21) exit"
-    echo "22) delete-docker 23) server-users 24) init-settings"
-    read -r -p "Choose an option [1-24]: " choice
+    echo "22) delete-docker 23) server-users 24) init-settings 25) deploy-crta"
+    read -r -p "Choose an option [1-25]: " choice
     case "$choice" in
       1) start_server ;; 
       2) start_server_bg ;; 
@@ -669,6 +716,7 @@ main_menu() {
       22) delete_docker ;; 
       23) manage_server_users ;; 
       24) init_settings_cli ;; 
+      25) deploy_crta ;; 
       *) echo "Invalid choice";;
     esac
   done
@@ -683,6 +731,7 @@ if [ "$#" -gt 0 ]; then
     start) start_server; exit 0 ;;
     start-bg) start_server_bg; exit 0 ;;
     status) status_server; exit 0 ;;
+    deploy-crta) deploy_crta; exit 0 ;;
     *) echo "Unknown command: $cmd"; exit 1 ;;
   esac
 fi
