@@ -464,6 +464,27 @@ remove_project_orphans() {
   fi
 }
 
+# Remove existing compose-managed containers for this project (interactive)
+remove_existing_project_containers() {
+  prefix="${1:-$(basename "$(pwd)") }"
+  if ! command -v docker >/dev/null 2>&1; then
+    return 0
+  fi
+  containers=$(docker ps -a --format '{{.Names}}' | grep -E "^${prefix}_" || true)
+  if [ -z "$containers" ]; then
+    return 0
+  fi
+  echo "Found existing compose-managed containers for project prefix '$prefix':"
+  echo "$containers"
+  if confirm "Stop and remove these containers before running compose up? (Named volumes are kept)"; then
+    echo "$containers" | while read -r c; do
+      [ -n "$c" ] && docker rm -f "$c" || true
+    done
+  else
+    echo "Keeping existing containers. Compose may fail if images/config changed."
+  fi
+}
+
 # Interactive prune of dangling images (safe default)
 prune_dangling_images() {
   if ! command -v docker >/dev/null 2>&1; then
@@ -495,6 +516,8 @@ deploy_compose() {
   if [ -n "$DC" ] && [ -f docker-compose.yml ]; then
     # Offer to detect and remove orphan containers before running compose up
     remove_project_orphans "$(basename "$(pwd)")"
+    # If previous containers exist for this compose project, offer to remove them to avoid recreate errors
+    remove_existing_project_containers "$(basename "$(pwd)")"
     # Offer to prune dangling images before deploy
     prune_dangling_images
 
