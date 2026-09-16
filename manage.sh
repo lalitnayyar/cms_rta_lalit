@@ -464,6 +464,24 @@ remove_project_orphans() {
   fi
 }
 
+# Interactive prune of dangling images (safe default)
+prune_dangling_images() {
+  if ! command -v docker >/dev/null 2>&1; then
+    return 0
+  fi
+  dang=$(docker images -f "dangling=true" -q | sort -u || true)
+  if [ -z "$dang" ]; then
+    return 0
+  fi
+  echo "Dangling images detected:"
+  docker images -f "dangling=true" || true
+  if confirm "Prune dangling images? This removes unused images and can free space."; then
+    docker image prune -f || echo "docker image prune failed"
+  else
+    echo "Skipping image prune."
+  fi
+}
+
 
 deploy_compose() {
   # detect compose command (docker-compose or docker compose plugin) without invoking 'docker compose'
@@ -477,6 +495,8 @@ deploy_compose() {
   if [ -n "$DC" ] && [ -f docker-compose.yml ]; then
     # Offer to detect and remove orphan containers before running compose up
     remove_project_orphans "$(basename "$(pwd)")"
+    # Offer to prune dangling images before deploy
+    prune_dangling_images
 
     if confirm "Run $DC up -d --build --remove-orphans?"; then
       if [[ "$DC" == *" "* ]]; then
@@ -542,6 +562,8 @@ deploy_crta() {
   fi
 
   if confirm "Run $DC -f $COMPOSE_FILE up -d --build --remove-orphans?"; then
+    # offer to prune dangling images before crta deploy
+    prune_dangling_images
     if [[ "$DC" == *" "* ]]; then
       eval "$DC -f $COMPOSE_FILE up -d --build --remove-orphans"
     else
@@ -562,9 +584,13 @@ redeploy_compose() {
     if confirm "Pull images and redeploy ($DC pull && $DC up -d --build --remove-orphans)?"; then
       if [[ "$DC" == *" "* ]]; then
         eval "$DC pull" || true
+        # offer prune before redeploy
+        prune_dangling_images
         eval "$DC up -d --build --remove-orphans"
       else
         $DC pull || true
+        # offer prune before redeploy
+        prune_dangling_images
         $DC up -d --build --remove-orphans
       fi
     fi
@@ -704,6 +730,12 @@ Commands:
  23) server-users  - Interactive CRUD for server users (inside container)
  24) init-settings - Create settings table and seed default headings (server/data.db or data/site.db)
  25) deploy-crta  - Deploy crta docker-compose (docker-compose.crta.yml) via Traefik network
+
+Notes:
+- deploy, redeploy, and deploy-crta now include interactive safeguards:
+  * detect and optionally remove project-prefixed orphan containers before 'docker compose up'
+  * offer to prune dangling images interactively before deploy/redeploy
+  These are interactive and require confirmation before deleting anything.
 EOF
 }
 
