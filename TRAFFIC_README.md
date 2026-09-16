@@ -20,3 +20,9 @@ Deploy
 - Check Traefik logs for ACME success and then visit: https://crta.srv1750386.hstgr.cloud
 
 If you'd like, push these changes to a new branch and open a PR; say "create PR" and provide a branch name.
+
+Note about manage.sh improvements
+- manage.sh now includes a 'deploy-crta' helper and safer deploy flows that:
+  - Detect and optionally remove project-prefixed orphan containers before running docker compose up.
+  - Offer to prune dangling images interactively before deploy/redeploy to avoid image-not-found errors.
+- Use ./manage.sh deploy-crta to bring up docker-compose.crta.yml (the script ensures the Traefik network exists).

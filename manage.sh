@@ -730,6 +730,12 @@ Commands:
  23) server-users  - Interactive CRUD for server users (inside container)
  24) init-settings - Create settings table and seed default headings (server/data.db or data/site.db)
  25) deploy-crta  - Deploy crta docker-compose (docker-compose.crta.yml) via Traefik network
+
+Notes:
+- deploy, redeploy, and deploy-crta now include interactive safeguards:
+  * detect and optionally remove project-prefixed orphan containers before 'docker compose up'
+  * offer to prune dangling images interactively before deploy/redeploy
+  These are interactive and require confirmation before deleting anything.
 EOF
 }
 
