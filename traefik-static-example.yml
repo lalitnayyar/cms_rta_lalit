@@ -1,0 +1,24 @@
+# Traefik static configuration example (place on the Traefik host and mount into the Traefik container)
+# Adjust email and paths as needed. This example uses HTTP-01 ACME (port 80 required).
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+api:
+  dashboard: true
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: you@example.com   # <-- change to your email
+      storage: /acme.json
+      httpChallenge:
+        entryPoint: web
