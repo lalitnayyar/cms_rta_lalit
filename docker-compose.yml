@@ -5,6 +5,12 @@ services:
     build:
       context: .
       dockerfile: server/Dockerfile
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${COMPOSE_PROJECT_NAME}.${TRAEFIK_HOST}`)
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}.entrypoints=websecure
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}.tls.certresolver=letsencrypt
+      - traefik.http.services.${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=4000
     ports:
       - "4000:4000"
     environment:
@@ -15,3 +21,4 @@ services:
       - /app/server/node_modules
       - ./data:/app/data
     restart: unless-stopped
+      
