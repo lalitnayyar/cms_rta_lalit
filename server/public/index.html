@@ -8,7 +8,7 @@
   <style>
     /* Prevent horizontal overflow and ensure predictable box-sizing */
     *,*::before,*::after{box-sizing:border-box}
-    html,body{overflow-x:hidden;margin:0;padding:0}
+    html,body{margin:0;padding:0}
     img{max-width:100%;height:auto;display:block}
     main{max-width:1200px;margin:0 auto;padding:24px}
 
@@ -19,10 +19,16 @@
 
     .carousel{position:relative;overflow:hidden;border-radius:12px}
     .carousel-track{display:flex;transition:transform .6s cubic-bezier(.2,.9,.2,1);flex-wrap:nowrap}
-    .carousel-item{min-width:100%;box-sizing:border-box;padding:18px}
+    .carousel-item{min-width:100%;box-sizing:border-box;padding:18px;min-width:0}
     .carousel{box-sizing:border-box;width:100%;}
     .carousel-track{box-sizing:border-box;will-change:transform;}
     .carousel-item img{max-width:100%;height:auto;border-radius:10px}
+
+    /* Ensure flex/grid children can shrink without forcing parent width */
+    .layout-grid > section, .layout-grid > aside, .notice-big > div, .link-card > div { min-width: 0; }
+
+    /* Make notice images responsive and prevent them forcing overflow */
+    .notice-big img{width:200px;height:120px;object-fit:cover;border-radius:10px;flex:0 0 auto;max-width:100%}
 
     .notice-big{padding:28px;border-radius:12px;color:white;display:flex;gap:18px;align-items:flex-start;overflow-wrap:break-word}
     .notice-big h2{font-size:1.7rem;margin:0}
@@ -47,7 +53,8 @@
 
     /* responsive */
     @media(min-width:768px){
-      .layout-grid{display:grid;grid-template-columns:320px 1fr;gap:28px}
+      /* Use a non-overflowing grid pattern: fixed sidebar + flexible content that can shrink */
+      .layout-grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:28px}
       .notice-big{padding:32px}
     }
   </style>
