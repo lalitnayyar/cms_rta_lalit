@@ -452,11 +452,11 @@ deploy_compose() {
   fi
 
   if [ -n "$DC" ] && [ -f docker-compose.yml ]; then
-    if confirm "Run $DC up -d --build?"; then
+    if confirm "Run $DC up -d --build --remove-orphans?"; then
       if [[ "$DC" == *" "* ]]; then
-        eval "$DC up -d --build"
+        eval "$DC up -d --build --remove-orphans"
       else
-        $DC up -d --build
+        $DC up -d --build --remove-orphans
       fi
     fi
     return
@@ -515,11 +515,11 @@ deploy_crta() {
     fi
   fi
 
-  if confirm "Run $DC -f $COMPOSE_FILE up -d --build?"; then
+  if confirm "Run $DC -f $COMPOSE_FILE up -d --build --remove-orphans?"; then
     if [[ "$DC" == *" "* ]]; then
-      eval "$DC -f $COMPOSE_FILE up -d --build"
+      eval "$DC -f $COMPOSE_FILE up -d --build --remove-orphans"
     else
-      $DC -f $COMPOSE_FILE up -d --build
+      $DC -f $COMPOSE_FILE up -d --build --remove-orphans
     fi
   fi
 }
@@ -533,13 +533,13 @@ redeploy_compose() {
   fi
 
   if [ -n "$DC" ] && [ -f docker-compose.yml ]; then
-    if confirm "Pull images and redeploy ($DC pull && $DC up -d --build)?"; then
+    if confirm "Pull images and redeploy ($DC pull && $DC up -d --build --remove-orphans)?"; then
       if [[ "$DC" == *" "* ]]; then
         eval "$DC pull" || true
-        eval "$DC up -d --build"
+        eval "$DC up -d --build --remove-orphans"
       else
         $DC pull || true
-        $DC up -d --build
+        $DC up -d --build --remove-orphans
       fi
     fi
     return
